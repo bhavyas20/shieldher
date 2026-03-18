@@ -256,3 +256,104 @@
   flex-shrink: 0;
   margin-top: 3px;
 }
+
+/* ═══ Export Banner ═══ */
+.exportBanner {
+  margin-bottom: 28px;
+  background: linear-gradient(135deg, rgba(99, 91, 255, 0.06), rgba(168, 85, 247, 0.06), rgba(236, 72, 153, 0.04));
+  border: 1.5px solid rgba(99, 91, 255, 0.18);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 20px rgba(99, 91, 255, 0.08);
+}
+
+.exportBanner:hover {
+  border-color: rgba(99, 91, 255, 0.3);
+  box-shadow: 0 6px 28px rgba(99, 91, 255, 0.12);
+}
+
+.exportBannerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.exportBannerText {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.exportBannerIcon {
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.exportBannerTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.exportBannerDesc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.exportBannerDesc strong {
+  color: var(--accent-primary);
+  font-weight: 700;
+}
+
+.exportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 700;
+  color: white;
+  background: var(--accent-primary);
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 12px rgba(99, 91, 255, 0.25);
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+}
+
+.exportBtn:hover:not(:disabled) {
+  background: var(--accent-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(99, 91, 255, 0.35);
+}
+
+.exportBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.exportBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .exportBannerContent {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .exportBtn {
+    justify-content: center;
+  }
+}

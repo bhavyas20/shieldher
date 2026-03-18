@@ -142,3 +142,61 @@ CREATE POLICY "Users can delete their screenshots"
     bucket_id = 'screenshots'
     AND auth.uid() IS NOT NULL
   );
+
+-- ═══════════════════════════════════════
+-- 5. Reports Table (PDF Evidence Reports)
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.reports (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  upload_id UUID REFERENCES public.uploads(id) ON DELETE CASCADE NOT NULL,
+  analysis_id UUID REFERENCES public.analysis_results(id) ON DELETE CASCADE NOT NULL,
+  file_name TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  risk_level TEXT DEFAULT 'safe' CHECK (risk_level IN ('safe', 'low', 'medium', 'high', 'critical')) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Users can view their own reports"
+  ON public.reports FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own reports"
+  ON public.reports FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own reports"
+  ON public.reports FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ═══════════════════════════════════════
+-- 6. Reports Storage Bucket
+-- ═══════════════════════════════════════
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('reports', 'reports', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage Policies for reports bucket
+CREATE POLICY "Users can upload reports"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'reports'
+    AND auth.uid() IS NOT NULL
+  );
+
+CREATE POLICY "Users can view reports"
+  ON storage.objects FOR SELECT
+  USING (
+    bucket_id = 'reports'
+  );
+
+CREATE POLICY "Users can delete their reports"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'reports'
+    AND auth.uid() IS NOT NULL
+  );

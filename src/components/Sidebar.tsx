@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Upload,
   History,
+  FileDown,
   Settings,
   LogOut,
   ChevronLeft,
@@ -20,6 +21,7 @@ const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/upload', icon: Upload, label: 'Upload' },
   { href: '/dashboard/history', icon: History, label: 'History' },
+  { href: '/dashboard/downloads', icon: FileDown, label: 'Downloads' },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ];
 

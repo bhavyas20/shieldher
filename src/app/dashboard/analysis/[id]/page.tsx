@@ -17,6 +17,9 @@ import {
   MessageSquare,
   Lightbulb,
   Scale,
+  FileDown,
+  Loader,
+  CheckCircle,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -26,6 +29,8 @@ export default function AnalysisDetailPage() {
   const [upload, setUpload] = useState<Upload | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -50,6 +55,44 @@ export default function AnalysisDetailPage() {
     }
     fetchData();
   }, [uploadId]);
+
+  const handleExportPDF = async () => {
+    if (!uploadId || generating) return;
+    setGenerating(true);
+    setGenerated(false);
+
+    try {
+      const res = await fetch('/api/generate-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uploadId }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to generate report');
+      }
+
+      // Download the PDF
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ShieldHer-Report-${analysis?.id?.substring(0, 8) || 'report'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      setGenerated(true);
+
+      setTimeout(() => setGenerated(false), 4000);
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Failed to generate report. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -103,6 +146,44 @@ export default function AnalysisDetailPage() {
             </div>
           </div>
           <RiskBadge level={analysis.risk_level} size="lg" />
+        </div>
+      </div>
+
+      {/* ═══ PROMINENT EXPORT BUTTON ═══ */}
+      <div className={styles.exportBanner}>
+        <div className={styles.exportBannerContent}>
+          <div className={styles.exportBannerText}>
+            <FileDown size={22} className={styles.exportBannerIcon} />
+            <div>
+              <h3 className={styles.exportBannerTitle}>Export as Evidence PDF</h3>
+              <p className={styles.exportBannerDesc}>
+                Generate a certified evidence report that <strong>can be used as supporting evidence</strong> when 
+                consulting a lawyer, counselor, or filing a complaint with the authorities.
+              </p>
+            </div>
+          </div>
+          <button
+            className={styles.exportBtn}
+            onClick={handleExportPDF}
+            disabled={generating}
+          >
+            {generating ? (
+              <>
+                <Loader size={18} className="animate-spin" />
+                Generating...
+              </>
+            ) : generated ? (
+              <>
+                <CheckCircle size={18} />
+                Downloaded!
+              </>
+            ) : (
+              <>
+                <FileDown size={18} />
+                Download PDF Report
+              </>
+            )}
+          </button>
         </div>
       </div>
 

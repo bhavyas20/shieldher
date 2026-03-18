@@ -45,3 +45,14 @@ export interface AnalysisResult {
   };
   created_at: string;
 }
+
+export interface Report {
+  id: string;
+  user_id: string;
+  upload_id: string;
+  analysis_id: string;
+  file_name: string;
+  file_url: string;
+  risk_level: RiskLevel;
+  created_at: string;
+}
