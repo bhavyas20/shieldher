@@ -5,6 +5,7 @@ export interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  ghost_mode: boolean;
   created_at: string;
 }
 

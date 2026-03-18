@@ -12,9 +12,12 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useTheme } from './ThemeProvider';
 import styles from './Sidebar.module.css';
 
 const navItems = [
@@ -29,6 +32,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -78,6 +82,15 @@ export default function Sidebar() {
       </nav>
 
       <div className={styles.bottom}>
+        <button
+          className={styles.themeToggle}
+          onClick={toggleTheme}
+          aria-label="Toggle theme"
+          title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+        >
+          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          {!collapsed && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
+        </button>
         <button className={styles.navItem} onClick={handleLogout}>
           <LogOut size={20} />
           {!collapsed && <span>Log Out</span>}

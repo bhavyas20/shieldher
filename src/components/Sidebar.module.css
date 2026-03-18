@@ -118,6 +118,31 @@
 .bottom {
   padding: 12px 8px;
   border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.themeToggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.themeToggle:hover {
+  color: var(--accent-primary);
+  background: var(--accent-primary-dim);
 }
 
 @media (max-width: 768px) {
@@ -126,7 +151,8 @@
   }
 
   .logoText,
-  .navItem span {
+  .navItem span,
+  .themeToggle span {
     display: none;
   }
 
