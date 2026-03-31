@@ -4,6 +4,10 @@ import { createClient } from '@supabase/supabase-js';
 // This endpoint is designed to be called by a cron job (e.g., Supabase Edge Functions, Vercel Cron)
 // It purges uploads, analyses, reports, and storage files older than 24 hours
 // for users who have Ghost Mode enabled.
+//
+// ZERO ADMIN ACCESS: This route only DELETES records and storage blobs.
+// It never reads or decrypts user content — all stored data is encrypted
+// with user-specific keys that only the user's browser can decrypt.
 
 export async function GET(request: Request) {
   // Verify the request has a valid authorization key

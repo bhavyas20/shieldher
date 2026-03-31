@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { type Upload, type AnalysisResult } from "@/lib/types";
+import { retrieveKey, decryptText } from "@/lib/crypto";
 import AnalysisCard from "@/components/AnalysisCard";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import RiskBadge from "@/components/RiskBadge";
@@ -33,7 +34,40 @@ export default function HistoryPage() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (data) setUploads(data as UploadWithAnalysis[]);
+      if (data) {
+        // E2EE: Decrypt analysis summaries client-side
+        const encryptionKey = await retrieveKey();
+        
+        if (encryptionKey) {
+          const decryptedUploads = await Promise.all(
+            (data as UploadWithAnalysis[]).map(async (upload) => {
+              if (upload.analysis_results) {
+                const decryptedResults = await Promise.all(
+                  upload.analysis_results.map(async (analysis) => {
+                    // If encrypted fields exist, decrypt them
+                    if (analysis.encrypted_summary) {
+                      try {
+                        const payload = JSON.parse(analysis.encrypted_summary);
+                        const decryptedSummary = await decryptText(encryptionKey, payload);
+                        return { ...analysis, summary: decryptedSummary };
+                      } catch {
+                        // Fallback: use legacy plaintext if decryption fails
+                        return analysis;
+                      }
+                    }
+                    return analysis;
+                  })
+                );
+                return { ...upload, analysis_results: decryptedResults };
+              }
+              return upload;
+            })
+          );
+          setUploads(decryptedUploads);
+        } else {
+          setUploads(data as UploadWithAnalysis[]);
+        }
+      }
       setLoading(false);
     }
     fetchHistory();
@@ -54,7 +88,7 @@ export default function HistoryPage() {
     return (
       <div className={styles.page}>
         <div className={styles.loadingWrap}>
-          <LoadingSpinner text="Loading history..." />
+          <LoadingSpinner text="Decrypting history..." />
         </div>
       </div>
     );

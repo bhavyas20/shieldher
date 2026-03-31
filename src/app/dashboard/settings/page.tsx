@@ -100,6 +100,10 @@ export default function SettingsPage() {
   };
 
   const handleSignOut = async () => {
+    // E2EE: Clear encryption key from session
+    const { clearKey } = await import('@/lib/crypto');
+    clearKey();
+
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/');

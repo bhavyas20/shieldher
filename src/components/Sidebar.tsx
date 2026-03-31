@@ -56,6 +56,10 @@ export default function Sidebar() {
   }, []);
 
   const handleLogout = async () => {
+    // E2EE: Clear encryption key from session
+    const { clearKey } = await import('@/lib/crypto');
+    clearKey();
+
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
