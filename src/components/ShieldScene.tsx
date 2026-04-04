@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
+
+type Dot = {
+  angle: number;
+  radius: number;
+  orbitSpeed: number;
+  size: number;
+  stretch: number;
+  seed: number;
+  hue: number;
+};
 
 export default function ShieldScene() {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -10,220 +19,172 @@ export default function ShieldScene() {
     const mount = mountRef.current;
     if (!mount) return;
 
-    let W = mount.clientWidth;
-    let H = mount.clientHeight;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    /* ── Renderer ── */
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(W, H);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 0);
-    mount.appendChild(renderer.domElement);
+    canvas.style.position = "absolute";
+    canvas.style.inset = "0";
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.pointerEvents = "none";
+    mount.appendChild(canvas);
 
-    /* ── Scene & Camera ── */
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 100);
-    camera.position.set(0, 0, 12);
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let maxRadius = 0;
+    let frameId = 0;
 
-    /* ── Mouse tracking ── */
-    const mouse = { x: 0, y: 0 };
-    const onMouseMove = (e: MouseEvent) => {
+    const pointer = {
+      x: 0,
+      y: 0,
+      targetX: 0,
+      targetY: 0,
+      active: 0,
+      targetActive: 0,
+    };
+
+    const dots: Dot[] = [];
+
+    const buildDots = () => {
+      dots.length = 0;
+      const dotCount = Math.max(
+        260,
+        Math.min(900, Math.floor((width * height) / 2200))
+      );
+
+      for (let i = 0; i < dotCount; i += 1) {
+        const angle = Math.random() * Math.PI * 2;
+        const ringDepth = 0.22 + Math.pow(Math.random(), 0.85) * 0.82;
+        dots.push({
+          angle,
+          radius: ringDepth * maxRadius * (0.88 + Math.random() * 0.28),
+          orbitSpeed: 0.00008 + Math.random() * 0.00018,
+          size: 0.65 + Math.random() * 1.35,
+          stretch: 1.1 + Math.random() * 1.2,
+          seed: Math.random() * 5000,
+          hue: 132 + Math.random() * 80,
+        });
+      }
+    };
+
+    const resize = () => {
+      width = Math.max(1, mount.clientWidth);
+      height = Math.max(1, mount.clientHeight);
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      maxRadius = Math.min(width, height) * 0.7;
+
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      pointer.x = width * 0.5;
+      pointer.y = height * 0.5;
+      pointer.targetX = pointer.x;
+      pointer.targetY = pointer.y;
+
+      buildDots();
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
       const rect = mount.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-      mouse.y = -((e.clientY - rect.top) / rect.height - 0.5) * 2;
-    };
-    window.addEventListener("mousemove", onMouseMove);
+      const inside =
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom;
 
-    /* ════════════════════════════════════════
-       DARK LEAF GREEN PALETTE
-    ════════════════════════════════════════ */
-    const leafColors = [
-      new THREE.Color("#1a3a2a"),  // deep forest
-      new THREE.Color("#1e4d32"),  // dark leaf
-      new THREE.Color("#265e3a"),  // mid green
-      new THREE.Color("#2d7a47"),  // bright leaf
-      new THREE.Color("#1b5e3b"),  // emerald dark
-    ];
-
-    /* ════════════════════════════════════════
-       FLOWING ORGANIC PARTICLES
-    ════════════════════════════════════════ */
-    const particleCount = 80;
-    interface Particle {
-      mesh: THREE.Mesh;
-      vx: number;
-      vy: number;
-      baseX: number;
-      baseY: number;
-      phase: number;
-      speed: number;
-    }
-    const particles: Particle[] = [];
-
-    const particleMat = new THREE.MeshBasicMaterial({
-      transparent: true,
-      opacity: 0.5,
-    });
-
-    for (let i = 0; i < particleCount; i++) {
-      const size = 0.04 + Math.random() * 0.08;
-      const geo = new THREE.CircleGeometry(size, 8);
-      const mat = particleMat.clone();
-      mat.color = leafColors[Math.floor(Math.random() * leafColors.length)].clone();
-      mat.opacity = 0.15 + Math.random() * 0.35;
-
-      const mesh = new THREE.Mesh(geo, mat);
-      const x = (Math.random() - 0.5) * 26;
-      const y = (Math.random() - 0.5) * 16;
-      mesh.position.set(x, y, -2 + Math.random() * 2);
-
-      scene.add(mesh);
-      particles.push({
-        mesh,
-        vx: (Math.random() - 0.5) * 0.003,
-        vy: (Math.random() - 0.5) * 0.003,
-        baseX: x,
-        baseY: y,
-        phase: Math.random() * Math.PI * 2,
-        speed: 0.2 + Math.random() * 0.5,
-      });
-    }
-
-    /* ════════════════════════════════════════
-       CONNECTING LINES (network web)
-    ════════════════════════════════════════ */
-    const lineGroup = new THREE.Group();
-    scene.add(lineGroup);
-
-    const lineMaterial = new THREE.LineBasicMaterial({
-      color: new THREE.Color("#2d7a47"),
-      transparent: true,
-      opacity: 0.08,
-    });
-
-    const updateLines = () => {
-      // Dispose old
-      while (lineGroup.children.length > 0) {
-        const child = lineGroup.children[0];
-        if (child instanceof THREE.Line) {
-          child.geometry.dispose();
-        }
-        lineGroup.remove(child);
+      if (!inside) {
+        pointer.targetActive = 0;
+        return;
       }
 
-      const maxDist = 3.8;
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].mesh.position.x - particles[j].mesh.position.x;
-          const dy = particles[i].mesh.position.y - particles[j].mesh.position.y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < maxDist) {
-            const alpha = (1 - d / maxDist) * 0.12;
-            const geo = new THREE.BufferGeometry().setFromPoints([
-              particles[i].mesh.position.clone(),
-              particles[j].mesh.position.clone(),
-            ]);
-            const mat = lineMaterial.clone();
-            mat.opacity = alpha;
-            lineGroup.add(new THREE.Line(geo, mat));
-          }
-        }
+      pointer.targetX = e.clientX - rect.left;
+      pointer.targetY = e.clientY - rect.top;
+      pointer.targetActive = 1;
+    };
+    const onPointerLeave = () => {
+      pointer.targetActive = 0;
+    };
+
+    const animate = (now: number) => {
+      frameId = window.requestAnimationFrame(animate);
+
+      pointer.x += (pointer.targetX - pointer.x) * 0.11;
+      pointer.y += (pointer.targetY - pointer.y) * 0.11;
+      pointer.active += (pointer.targetActive - pointer.active) * 0.08;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const centerX = width * 0.5;
+      const centerY = height * 0.5;
+      const influenceRadius = Math.min(width, height) * 0.38;
+
+      for (let i = 0; i < dots.length; i += 1) {
+        const dot = dots[i];
+        const t = now * dot.orbitSpeed + dot.seed;
+
+        const orbitX = Math.cos(dot.angle + t) * dot.radius * 1.08;
+        const orbitY = Math.sin(dot.angle + t) * dot.radius * 0.82;
+        const wobbleX = Math.sin(now * 0.00042 + dot.seed) * 5;
+        const wobbleY = Math.cos(now * 0.00036 + dot.seed * 1.3) * 4;
+        const baseX = centerX + orbitX + wobbleX;
+        const baseY = centerY + orbitY + wobbleY;
+
+        const dx = pointer.x - baseX;
+        const dy = pointer.y - baseY;
+        const dist = Math.hypot(dx, dy) || 1;
+        const normalized = Math.max(0, 1 - dist / influenceRadius) * pointer.active;
+
+        const pull = normalized * 32;
+        const swirl = normalized * 16;
+        const nx = dx / dist;
+        const ny = dy / dist;
+
+        const x = baseX + nx * pull + -ny * swirl;
+        const y = baseY + ny * pull + nx * swirl;
+
+        const hue =
+          dot.hue +
+          normalized * 64 +
+          Math.sin(now * 0.0009 + dot.seed * 0.8) * 10;
+        const saturation = 52 + normalized * 35;
+        const lightness = 36 + normalized * 28;
+        const alpha = 0.12 + normalized * 0.72;
+        const rotation = dot.angle + now * dot.orbitSpeed * 0.7 + normalized * 1.1;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        ctx.scale(dot.stretch + normalized * 0.8, 1);
+        ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(0, 0, dot.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      if (pointer.targetActive < 0.01) {
+        pointer.targetX += (centerX - pointer.targetX) * 0.025;
+        pointer.targetY += (centerY - pointer.targetY) * 0.025;
       }
     };
 
-    /* ════════════════════════════════════════
-       LARGE SOFT GLOW ORBS (ambient atmosphere)
-    ════════════════════════════════════════ */
-    const createGlow = (x: number, y: number, radius: number, color: THREE.Color, opacity: number) => {
-      const geo = new THREE.CircleGeometry(radius, 32);
-      const mat = new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity,
-      });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.set(x, y, -5);
-      scene.add(mesh);
-      return mesh;
-    };
+    resize();
+    frameId = window.requestAnimationFrame(animate);
 
-    const glow1 = createGlow(-6, 3, 5, new THREE.Color("#1a3a2a"), 0.12);
-    const glow2 = createGlow(7, -2, 4.5, new THREE.Color("#1e4d32"), 0.08);
-    const glow3 = createGlow(0, 0, 6, new THREE.Color("#0d2018"), 0.1);
+    window.addEventListener("resize", resize);
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    window.addEventListener("pointerleave", onPointerLeave);
 
-    /* ════════════════════════════════════════
-       ANIMATION LOOP
-    ════════════════════════════════════════ */
-    let frameId: number;
-    let lineTimer = 0;
-    const clock = new THREE.Clock();
-
-    const animate = () => {
-      frameId = requestAnimationFrame(animate);
-      const t = clock.getElapsedTime();
-
-      // Particles drift in organic wave patterns
-      particles.forEach((p) => {
-        p.mesh.position.x = p.baseX + Math.sin(t * p.speed + p.phase) * 1.2 + mouse.x * 0.4;
-        p.mesh.position.y = p.baseY + Math.cos(t * p.speed * 0.7 + p.phase) * 0.8 + mouse.y * 0.3;
-
-        // Slow drift of base position
-        p.baseX += p.vx;
-        p.baseY += p.vy;
-
-        // Wrap around edges
-        if (p.baseX > 14) p.baseX = -14;
-        if (p.baseX < -14) p.baseX = 14;
-        if (p.baseY > 9) p.baseY = -9;
-        if (p.baseY < -9) p.baseY = 9;
-      });
-
-      // Update lines every 4 frames (performance)
-      lineTimer++;
-      if (lineTimer % 4 === 0) updateLines();
-
-      // Breathing glow orbs
-      glow1.position.x = -6 + Math.sin(t * 0.15) * 1.5 + mouse.x * 0.8;
-      glow1.position.y = 3 + Math.cos(t * 0.12) * 1 + mouse.y * 0.6;
-      (glow1.material as THREE.MeshBasicMaterial).opacity = 0.1 + Math.sin(t * 0.3) * 0.04;
-
-      glow2.position.x = 7 + Math.cos(t * 0.1) * 1.2 + mouse.x * 0.5;
-      glow2.position.y = -2 + Math.sin(t * 0.18) * 0.8 + mouse.y * 0.4;
-      (glow2.material as THREE.MeshBasicMaterial).opacity = 0.07 + Math.cos(t * 0.25) * 0.03;
-
-      glow3.position.x = mouse.x * 1.2;
-      glow3.position.y = mouse.y * 0.8;
-      (glow3.material as THREE.MeshBasicMaterial).opacity = 0.08 + Math.sin(t * 0.2) * 0.03;
-
-      // Very subtle camera sway
-      camera.position.x = mouse.x * 0.3;
-      camera.position.y = mouse.y * 0.2;
-      camera.lookAt(0, 0, 0);
-
-      renderer.render(scene, camera);
-    };
-
-    animate();
-
-    /* ── Resize ── */
-    const onResize = () => {
-      if (!mount) return;
-      W = mount.clientWidth;
-      H = mount.clientHeight;
-      camera.aspect = W / H;
-      camera.updateProjectionMatrix();
-      renderer.setSize(W, H);
-    };
-    window.addEventListener("resize", onResize);
-
-    /* ── Cleanup ── */
     return () => {
-      cancelAnimationFrame(frameId);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("resize", onResize);
-      renderer.dispose();
-      if (mount.contains(renderer.domElement)) {
-        mount.removeChild(renderer.domElement);
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerleave", onPointerLeave);
+      if (mount.contains(canvas)) {
+        mount.removeChild(canvas);
       }
     };
   }, []);
