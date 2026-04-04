@@ -1,5 +1,6 @@
 import HeroVideo from "@/components/HeroVideo";
 import Reveal from "@/components/Reveal";
+import ShieldSceneWrapper from "@/components/ShieldSceneWrapper";
 import Link from "next/link";
 
 export default function Home() {
@@ -354,74 +355,51 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       {/* ══════════════════════════════════════
-          PRIVACY & SUPPORT SECTION
+          PRIVACY & SUPPORT SECTION — dark green animated bg
           ══════════════════════════════════════ */}
       <section className="support-section" id="privacy">
-        <div className="support-inner">
+        {/* Full-section 3D animated background */}
+        <ShieldSceneWrapper />
+
+        {/* Content on top */}
+        <div className="support-content">
           <Reveal>
-            <div className="support-text">
-              <h2>Expert protection at every corner.</h2>
+            <div className="support-header">
+              <div className="support-tag">Privacy & Security</div>
+              <h2>Expert protection at<br />every corner.</h2>
               <p>
                 Your data is fully encrypted and never shared. Use Ghost Mode to leave
                 no trace. Our network and AI work around the clock so you never face
                 a threatening situation alone.
               </p>
-              <div className="support-checklist">
-                <div className="support-check-item">
-                  <span className="material-symbols-outlined">check_circle</span>
-                  <span>End-to-End Encrypted Analysis</span>
-                </div>
-                <div className="support-check-item">
-                  <span className="material-symbols-outlined">check_circle</span>
-                  <span>Ghost Mode — Leave No Trace</span>
-                </div>
-                <div className="support-check-item">
-                  <span className="material-symbols-outlined">check_circle</span>
-                  <span>24/7 AI-Powered Monitoring</span>
-                </div>
-              </div>
             </div>
           </Reveal>
 
-          <Reveal delay={150}>
-            <div className="support-images">
-              <div className="support-img-col-offset">
-                <div className="support-img-cell" style={{ background: "var(--surface-container-highest)" }}>
-                  <img
-                    src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&q=80&auto=format"
-                    alt="Professional woman in tech"
-                    width={400}
-                    height={400}
-                  />
+          <Reveal delay={100}>
+            <div className="support-grid">
+              <div className="support-glass-card">
+                <div className="support-card-icon">
+                  <span className="material-symbols-outlined">encrypted</span>
                 </div>
-                <div className="support-img-cell" style={{ background: "var(--secondary-container)" }}>
-                  <img
-                    src="https://images.unsplash.com/photo-1607748862156-7c548e7e98f4?w=400&q=80&auto=format"
-                    alt="Digital security concept"
-                    width={400}
-                    height={400}
-                  />
-                </div>
+                <h3>End-to-End Encrypted</h3>
+                <p>Every screenshot and conversation is encrypted with AES-256 before analysis. Nobody — not even us — can see your raw data.</p>
               </div>
-              <div className="support-img-col">
-                <div className="support-img-cell" style={{ background: "var(--tertiary-fixed)" }}>
-                  <img
-                    src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=400&q=80&auto=format"
-                    alt="Women in safety meeting"
-                    width={400}
-                    height={400}
-                  />
+
+              <div className="support-glass-card">
+                <div className="support-card-icon">
+                  <span className="material-symbols-outlined">visibility_off</span>
                 </div>
-                <div className="support-img-cell" style={{ background: "var(--surface-container-highest)" }}>
-                  <img
-                    src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&q=80&auto=format"
-                    alt="Safety professional"
-                    width={400}
-                    height={400}
-                  />
+                <h3>Ghost Mode</h3>
+                <p>Activate Ghost Mode and leave absolutely zero trace on your device. Your safety is your secret.</p>
+              </div>
+
+              <div className="support-glass-card">
+                <div className="support-card-icon">
+                  <span className="material-symbols-outlined">shield</span>
                 </div>
+                <h3>24/7 AI Monitoring</h3>
+                <p>Our protection network runs continuously, analyzing threats in real-time so you&apos;re never alone.</p>
               </div>
             </div>
           </Reveal>
