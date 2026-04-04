@@ -14,12 +14,7 @@ export default function Home() {
 
         {/* Navigation inside hero */}
         <nav className="hero-nav">
-          <div className="hero-nav-left">
-            <button className="hero-nav-menu-btn" aria-label="Open menu">
-              <span className="material-symbols-outlined">menu</span>
-            </button>
-            <a href="#how-it-works" className="hero-nav-link">How it works</a>
-          </div>
+          <div />
 
           <div className="hero-nav-logo" aria-label="Shield Her">
             Shield Her
