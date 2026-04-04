@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 type PrivacySlide = {
   eyebrow: string;
@@ -60,81 +60,106 @@ const privacySlides: PrivacySlide[] = [
 ];
 
 export default function PrivacyFeatureScroller() {
-  const sliderRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
 
-  const scrollByDistance = (distance: number) => {
-    const slider = sliderRef.current;
-    if (!slider) return;
-    slider.scrollBy({ left: distance, behavior: "smooth" });
-  };
+  useEffect(() => {
+    const shell = shellRef.current;
+    const track = trackRef.current;
+    if (!shell || !track) return;
 
-  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    const slider = sliderRef.current;
-    if (!slider) return;
+    let currentShift = 0;
+    let targetShift = 0;
+    let rafId = 0;
+    let animating = false;
 
-    const hasHorizontalOverflow = slider.scrollWidth > slider.clientWidth;
-    if (!hasHorizontalOverflow) return;
+    const clamp = (value: number, min: number, max: number) => {
+      if (value < min) return min;
+      if (value > max) return max;
+      return value;
+    };
 
-    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+    const animate = () => {
+      const activeTrack = trackRef.current;
+      if (!activeTrack) return;
 
-    const atStart = slider.scrollLeft <= 0;
-    const atEnd = slider.scrollLeft + slider.clientWidth >= slider.scrollWidth - 1;
-    if ((event.deltaY < 0 && atStart) || (event.deltaY > 0 && atEnd)) return;
+      currentShift += (targetShift - currentShift) * 0.12;
+      if (Math.abs(targetShift - currentShift) < 0.2) {
+        currentShift = targetShift;
+      }
 
-    event.preventDefault();
-    slider.scrollBy({ left: event.deltaY, behavior: "auto" });
-  };
+      activeTrack.style.transform = `translate3d(${currentShift}px, 0, 0)`;
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const slider = sliderRef.current;
-    if (!slider) return;
-    const cardStep = Math.max(280, slider.clientWidth * 0.45);
+      if (Math.abs(targetShift - currentShift) >= 0.2) {
+        rafId = window.requestAnimationFrame(animate);
+      } else {
+        animating = false;
+      }
+    };
 
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      scrollByDistance(cardStep);
-    } else if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      scrollByDistance(-cardStep);
-    }
-  };
+    const updateTarget = () => {
+      const activeShell = shellRef.current;
+      const activeTrack = trackRef.current;
+      if (!activeShell || !activeTrack) return;
+
+      const rect = activeShell.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || 1;
+      const maxShift = Math.max(0, activeTrack.scrollWidth - activeShell.clientWidth);
+
+      const start = viewportHeight * 0.82;
+      const end = -rect.height * 0.5;
+      const progress = clamp((start - rect.top) / (start - end), 0, 1);
+
+      targetShift = -progress * maxShift;
+
+      if (!animating) {
+        animating = true;
+        rafId = window.requestAnimationFrame(animate);
+      }
+    };
+
+    updateTarget();
+    window.addEventListener("scroll", updateTarget, { passive: true });
+    window.addEventListener("resize", updateTarget);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", updateTarget);
+      window.removeEventListener("resize", updateTarget);
+    };
+  }, []);
 
   return (
-    <div className="support-slider-shell">
+    <div ref={shellRef} className="support-slider-shell">
       <div className="support-slider-meta">
-        <p className="support-slider-hint">Scroll to explore</p>
+        <p className="support-slider-hint">Scroll down to slide cards</p>
       </div>
 
-      <div
-        ref={sliderRef}
-        className="support-slider"
-        onWheel={handleWheel}
-        onKeyDown={handleKeyDown}
-        tabIndex={0}
-        aria-label="Privacy and safety feature cards"
-      >
-        {privacySlides.map((slide) => (
-          <article key={slide.title} className={`support-slide-card ${slide.toneClass}`}>
-            <div>
-              <p className="support-slide-eyebrow">{slide.eyebrow}</p>
-              <h3>{slide.title}</h3>
-              <p className="support-slide-desc">{slide.description}</p>
-            </div>
+      <div className="support-slider-window" aria-label="Privacy and safety feature cards">
+        <div ref={trackRef} className="support-slider-track">
+          {privacySlides.map((slide) => (
+            <article key={slide.title} className={`support-slide-card ${slide.toneClass}`}>
+              <div>
+                <p className="support-slide-eyebrow">{slide.eyebrow}</p>
+                <h3>{slide.title}</h3>
+                <p className="support-slide-desc">{slide.description}</p>
+              </div>
 
-            <div className="support-slide-visual">
-              <div className="support-slide-icon">
-                <span className="material-symbols-outlined">{slide.icon}</span>
+              <div className="support-slide-visual">
+                <div className="support-slide-icon">
+                  <span className="material-symbols-outlined">{slide.icon}</span>
+                </div>
+                <div className="support-pill-list">
+                  {slide.pills.map((pill) => (
+                    <span key={`${slide.title}-${pill}`} className="support-pill">
+                      {pill}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <div className="support-pill-list">
-                {slide.pills.map((pill) => (
-                  <span key={`${slide.title}-${pill}`} className="support-pill">
-                    {pill}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          ))}
+        </div>
       </div>
     </div>
   );
