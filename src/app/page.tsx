@@ -48,12 +48,13 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════════════════════
-          FEATURES SECTION
+          FEATURES SECTION — Bento Grid
           ══════════════════════════════════════ */}
       <section className="features-section" id="how-it-works">
         <div className="section-inner">
           <Reveal>
             <div className="section-header">
+              <div className="section-tag">Features</div>
               <h2 className="section-title">
                 Designed to protect, built to empower.
               </h2>
@@ -64,48 +65,175 @@ export default function Home() {
             </div>
           </Reveal>
 
-          <div className="features-grid">
+          <div className="bento-grid">
+
+            {/* ── Card 1: AI Threat Analysis (blue) ── */}
             <Reveal delay={0}>
-              <div className="feature-card">
-                <div className="feature-icon-wrap">
-                  <span className="material-symbols-outlined">psychology</span>
+              <div className="bento-card bento-card-1">
+                <div className="bento-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 8h10M9 4l4 4-4 4" />
+                  </svg>
                 </div>
-                <h3>AI Threat Analysis</h3>
-                <p>
-                  Upload screenshots of any conversation. Our AI instantly identifies
-                  manipulation, gaslighting, coercion, and threatening language patterns.
-                </p>
+
+                <div>
+                  <div className="bento-label">
+                    <span className="material-symbols-outlined" style={{ fontSize: "0.85rem" }}>psychology</span>
+                    AI-Powered
+                  </div>
+                  <div className="bento-title">AI Threat Analysis</div>
+                  <p className="bento-desc">
+                    Upload any conversation screenshot. Our AI instantly flags manipulation,
+                    gaslighting, coercion, and threatening language patterns.
+                  </p>
+                </div>
+
+                {/* Floating chat mockup */}
+                <div className="bento-mockup bento-mockup-1">
+                  <div className="chat-bubble-mock chat-bubble-user">
+                    "I know where you live."
+                  </div>
+                  <div className="chat-bubble-mock chat-bubble-threat">
+                    <span className="threat-dot" />
+                    ⚠ Threat detected — Explicit
+                  </div>
+                </div>
               </div>
             </Reveal>
 
-            <Reveal delay={100}>
-              <div className="feature-card">
-                <div className="feature-icon-wrap">
-                  <span className="material-symbols-outlined">pattern</span>
+            {/* ── Card 2: Pattern Detection (green) ── */}
+            <Reveal delay={80}>
+              <div className="bento-card bento-card-2">
+                <div className="bento-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 8h10M9 4l4 4-4 4" />
+                  </svg>
                 </div>
-                <h3>Pattern Detection</h3>
-                <p>
-                  Recognizes recurring toxic behavior across multiple conversations,
-                  revealing escalating threats before they become crises.
-                </p>
+
+                <div>
+                  <div className="bento-label">
+                    <span className="material-symbols-outlined" style={{ fontSize: "0.85rem" }}>trending_up</span>
+                    Behavioral
+                  </div>
+                  <div className="bento-title">Pattern Detection</div>
+                  <p className="bento-desc">
+                    Recognizes recurring toxic behavior across multiple conversations,
+                    revealing escalating threats before they become crises.
+                  </p>
+                </div>
+
+                {/* Floating bar chart mockup */}
+                <div className="bento-mockup bento-mockup-2">
+                  <div className="pattern-timeline">
+                    <div className="pt-header">Behavior patterns</div>
+                    <div className="pt-bar-row">
+                      <span className="pt-bar-label">Coercion</span>
+                      <div className="pt-bar-track">
+                        <div className="pt-bar-fill pt-bar-fill-1" />
+                      </div>
+                    </div>
+                    <div className="pt-bar-row">
+                      <span className="pt-bar-label">Control</span>
+                      <div className="pt-bar-track">
+                        <div className="pt-bar-fill pt-bar-fill-2" />
+                      </div>
+                    </div>
+                    <div className="pt-bar-row">
+                      <span className="pt-bar-label">Isolation</span>
+                      <div className="pt-bar-track">
+                        <div className="pt-bar-fill pt-bar-fill-3" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </Reveal>
 
-            <Reveal delay={200}>
-              <div className="feature-card">
-                <div className="feature-icon-wrap">
-                  <span className="material-symbols-outlined">notifications_active</span>
+            {/* ── Card 3: Instant Risk Report (peach) ── */}
+            <Reveal delay={160}>
+              <div className="bento-card bento-card-3">
+                <div className="bento-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 8h10M9 4l4 4-4 4" />
+                  </svg>
                 </div>
-                <h3>Instant Risk Report</h3>
-                <p>
-                  Receive a detailed risk assessment in under 30 seconds — from Safe
-                  to Critical — with legal insights and safety recommendations.
-                </p>
+
+                <div>
+                  <div className="bento-label">
+                    <span className="material-symbols-outlined" style={{ fontSize: "0.85rem" }}>bolt</span>
+                    Instant
+                  </div>
+                  <div className="bento-title">Risk Report in &lt;30s</div>
+                  <p className="bento-desc">
+                    Get a full risk assessment — from Safe to Critical — with legal
+                    insights and safety recommendations before you even blink.
+                  </p>
+                </div>
+
+                {/* Floating risk UI mockup */}
+                <div className="bento-mockup bento-mockup-3">
+                  <div className="risk-report-mock">
+                    <div className="risk-report-title">Risk Assessment</div>
+                    <div className="risk-level-badge risk-medium">
+                      ⚠ Moderate Risk
+                    </div>
+                    <div className="risk-score-row">
+                      <span className="risk-score-label">Threat score</span>
+                      <span className="risk-score-val">6.4 / 10</span>
+                    </div>
+                    <div className="risk-meter">
+                      <div className="risk-meter-fill" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </Reveal>
+
+            {/* ── Card 4: Privacy & Ghost Mode (dark) ── */}
+            <Reveal delay={240}>
+              <div className="bento-card bento-card-4">
+                <div className="bento-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 8h10M9 4l4 4-4 4" />
+                  </svg>
+                </div>
+
+                <div>
+                  <div className="bento-label">
+                    <span className="material-symbols-outlined" style={{ fontSize: "0.85rem" }}>lock</span>
+                    Privacy-First
+                  </div>
+                  <div className="bento-title">Ghost Mode & Encryption</div>
+                  <p className="bento-desc">
+                    End-to-end encrypted analysis. Activate Ghost Mode and leave
+                    absolutely zero trace — because your safety is your secret.
+                  </p>
+                </div>
+
+                {/* Floating privacy pills */}
+                <div className="bento-mockup bento-mockup-4">
+                  <div className="privacy-badge-mock">
+                    <div className="priv-pill">
+                      <span className="priv-pill-dot" />
+                      AES-256 Encrypted
+                    </div>
+                    <div className="priv-pill">
+                      <span className="priv-pill-dot" />
+                      Ghost Mode Active
+                    </div>
+                    <div className="priv-pill">
+                      <span className="priv-pill-dot" />
+                      Zero Data Retention
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+
           </div>
         </div>
       </section>
+
 
       {/* ══════════════════════════════════════
           OUTCOMES / STATS SECTION (dark card)
