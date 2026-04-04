@@ -13,16 +13,24 @@ import {
   Plus,
   MapPin,
   FileSearch,
-  MessageSquare,
   Scale,
   Lightbulb,
 } from 'lucide-react';
 import { type AnalysisResult, type Upload as UploadType } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 
+type UserRole = 'user' | 'lawyer';
+
+function parseRole(value: unknown): UserRole | null {
+  if (value === 'lawyer' || value === 'user') return value;
+  return null;
+}
+
 export default function DashboardPage() {
+  const router = useRouter();
   const [userName, setUserName] = useState('');
   const [uploads, setUploads] = useState<UploadType[]>([]);
   const [analyses, setAnalyses] = useState<AnalysisResult[]>([]);
@@ -39,6 +47,13 @@ export default function DashboardPage() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        const role = parseRole(user.user_metadata?.role);
+        if (role === 'lawyer') {
+          router.replace('/lawyer/dashboard');
+          setLoading(false);
+          return;
+        }
+
         setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
 
         // Fetch uploads
@@ -63,7 +78,7 @@ export default function DashboardPage() {
       setLoading(false);
     }
     fetchData();
-  }, []);
+  }, [router]);
 
   const totalUploads = uploads.length;
   const analyzed = uploads.filter((u) => u.status === 'completed').length;
@@ -363,6 +378,9 @@ export default function DashboardPage() {
         )}
       </section>
 
+      {/* ═══ Lawyers Directory ═══ */}
+      
+
       {/* ═══ Insight Section ═══ */}
       <section className={styles.insightGrid}>
         {/* Intelligence Report Card */}
@@ -448,3 +466,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

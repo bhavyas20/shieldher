@@ -2,21 +2,69 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { User, Mail, Shield, LogOut, Save, Loader, Ghost, AlertTriangle, ArrowLeft } from 'lucide-react';
+import {
+  User,
+  Mail,
+  Shield,
+  LogOut,
+  Save,
+  Loader,
+  Ghost,
+  AlertTriangle,
+  ArrowLeft,
+  Scale,
+  Briefcase,
+  FileText,
+  MapPin,
+  Phone,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
 
+type UserRole = 'user' | 'lawyer';
+
+function parseRole(value: unknown): UserRole | null {
+  if (value === 'lawyer' || value === 'user') return value;
+  return null;
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+function getStringField(obj: Record<string, unknown>, key: string): string {
+  const value = obj[key];
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'string') return value;
+  return '';
+}
+
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingLawyerProfile, setSavingLawyerProfile] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [ghostMode, setGhostMode] = useState(false);
+  const [isLawyer, setIsLawyer] = useState(false);
+  const [barCouncilId, setBarCouncilId] = useState('');
+  const [specialization, setSpecialization] = useState('');
+  const [yearsExperience, setYearsExperience] = useState('');
+  const [officeCity, setOfficeCity] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
+  const [shortBio, setShortBio] = useState('');
   const [togglingGhost, setTogglingGhost] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [lawyerMessage, setLawyerMessage] = useState('');
+  const [lawyerError, setLawyerError] = useState('');
   const router = useRouter();
+  const backHref = isLawyer ? '/lawyer/dashboard' : '/dashboard';
+  const backLabel = isLawyer ? 'Back to Lawyer Dashboard' : 'Back to Dashboard';
 
   useEffect(() => {
     async function loadProfile() {
@@ -25,6 +73,20 @@ export default function SettingsPage() {
       
       if (user) {
         setEmail(user.email || '');
+        setIsLawyer(parseRole(user.user_metadata?.role) === 'lawyer');
+
+        const metadata = asObject(user.user_metadata);
+        const lawyerProfile = asObject(metadata.lawyer_profile);
+        setBarCouncilId(getStringField(lawyerProfile, 'bar_council_id'));
+        setSpecialization(getStringField(lawyerProfile, 'specialization'));
+        setYearsExperience(getStringField(lawyerProfile, 'years_of_experience'));
+        setOfficeCity(getStringField(lawyerProfile, 'office_city'));
+        setShortBio(getStringField(lawyerProfile, 'short_bio'));
+        setContactNumber(
+          getStringField(lawyerProfile, 'contact_number') ||
+            getStringField(metadata, 'phone')
+        );
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, ghost_mode')
@@ -33,6 +95,8 @@ export default function SettingsPage() {
           
         if (profile?.full_name) {
           setFullName(profile.full_name);
+        } else {
+          setFullName(getStringField(metadata, 'full_name'));
         }
         if (profile?.ghost_mode !== undefined) {
           setGhostMode(profile.ghost_mode);
@@ -63,13 +127,92 @@ export default function SettingsPage() {
       .update({ full_name: fullName })
       .eq('id', user.id);
 
-    if (updateError) {
+    const existingMetadata = asObject(user.user_metadata);
+    const { error: metadataError } = await supabase.auth.updateUser({
+      data: {
+        ...existingMetadata,
+        full_name: fullName,
+      },
+    });
+
+    if (updateError || metadataError) {
       setError('Failed to update profile name.');
     } else {
       setMessage('Profile updated successfully.');
     }
     
     setSaving(false);
+  };
+
+  const handleSaveLawyerProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingLawyerProfile(true);
+    setLawyerMessage('');
+    setLawyerError('');
+
+    const trimmedBarCouncilId = barCouncilId.trim();
+    const trimmedSpecialization = specialization.trim();
+    const trimmedOfficeCity = officeCity.trim();
+    const trimmedContactNumber = contactNumber.trim();
+    const trimmedShortBio = shortBio.trim();
+    const experienceNumber = Number(yearsExperience);
+
+    if (!trimmedBarCouncilId || !trimmedSpecialization || !trimmedOfficeCity || !trimmedContactNumber) {
+      setLawyerError('Please fill in all lawyer profile fields.');
+      setSavingLawyerProfile(false);
+      return;
+    }
+
+    if (!Number.isFinite(experienceNumber) || experienceNumber < 0 || experienceNumber > 70) {
+      setLawyerError('Years of experience must be between 0 and 70.');
+      setSavingLawyerProfile(false);
+      return;
+    }
+
+    if (trimmedShortBio.length > 500) {
+      setLawyerError('Short bio must be 500 characters or fewer.');
+      setSavingLawyerProfile(false);
+      return;
+    }
+
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      setLawyerError('Session expired. Please sign in again.');
+      setSavingLawyerProfile(false);
+      router.push('/auth');
+      return;
+    }
+
+    const existingMetadata = asObject(user.user_metadata);
+    const existingLawyerProfile = asObject(existingMetadata.lawyer_profile);
+    const lawyerProfile = {
+      ...existingLawyerProfile,
+      bar_council_id: trimmedBarCouncilId,
+      specialization: trimmedSpecialization,
+      years_of_experience: experienceNumber,
+      office_city: trimmedOfficeCity,
+      contact_number: trimmedContactNumber,
+      short_bio: trimmedShortBio,
+    };
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: {
+        ...existingMetadata,
+        role: 'lawyer',
+        lawyer_profile_completed: true,
+        lawyer_profile: lawyerProfile,
+      },
+    });
+
+    if (updateError) {
+      setLawyerError(updateError.message || 'Failed to update lawyer profile.');
+    } else {
+      setLawyerMessage('Lawyer details updated successfully.');
+    }
+
+    setSavingLawyerProfile(false);
   };
 
   const handleToggleGhostMode = async () => {
@@ -118,9 +261,9 @@ export default function SettingsPage() {
 
   return (
     <div className={styles.page}>
-      <Link href="/dashboard" className={styles.back}>
+      <Link href={backHref} className={styles.back}>
         <ArrowLeft size={16} />
-        Back to Dashboard
+        {backLabel}
       </Link>
 
       <div className={styles.header}>
@@ -187,6 +330,139 @@ export default function SettingsPage() {
             </div>
           </form>
         </div>
+
+        {isLawyer && (
+          <div className={`${styles.card} ${styles.lawyerCard}`}>
+            <div className={styles.cardHeader}>
+              <div className={`${styles.iconWrap} ${styles.lawyerIconWrap}`}>
+                <Scale size={24} />
+              </div>
+              <div>
+                <h2 className={styles.cardTitle}>Lawyer Information</h2>
+                <p className={styles.cardDesc}>Manage your professional profile details.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveLawyerProfile} className={styles.form}>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="barCouncilId">Bar Council ID</label>
+                <input
+                  id="barCouncilId"
+                  type="text"
+                  className={styles.input}
+                  value={barCouncilId}
+                  onChange={(e) => setBarCouncilId(e.target.value)}
+                  placeholder="Enter your registration ID"
+                  required
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="specialization">Primary Specialization</label>
+                <div className={styles.inputWrap}>
+                  <Briefcase size={18} className={styles.inputIcon} />
+                  <select
+                    id="specialization"
+                    className={`${styles.input} ${styles.inputWithIcon}`}
+                    value={specialization}
+                    onChange={(e) => setSpecialization(e.target.value)}
+                    required
+                  >
+                    <option value="">Select specialization</option>
+                    <option value="Family Law">Family Law</option>
+                    <option value="Criminal Law">Criminal Law</option>
+                    <option value="Civil Litigation">Civil Litigation</option>
+                    <option value="Cyber Law">Cyber Law</option>
+                    <option value="Women and Child Rights">Women and Child Rights</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className={styles.formGrid}>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="yearsExperience">Years of Experience</label>
+                  <input
+                    id="yearsExperience"
+                    type="number"
+                    min={0}
+                    max={70}
+                    className={styles.input}
+                    value={yearsExperience}
+                    onChange={(e) => setYearsExperience(e.target.value)}
+                    placeholder="e.g. 6"
+                    required
+                  />
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="officeCity">Office City</label>
+                  <div className={styles.inputWrap}>
+                    <MapPin size={18} className={styles.inputIcon} />
+                    <input
+                      id="officeCity"
+                      type="text"
+                      className={`${styles.input} ${styles.inputWithIcon}`}
+                      value={officeCity}
+                      onChange={(e) => setOfficeCity(e.target.value)}
+                      placeholder="e.g. Delhi"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="contactNumber">Contact Number</label>
+                <div className={styles.inputWrap}>
+                  <Phone size={18} className={styles.inputIcon} />
+                  <input
+                    id="contactNumber"
+                    type="tel"
+                    className={`${styles.input} ${styles.inputWithIcon}`}
+                    value={contactNumber}
+                    onChange={(e) => setContactNumber(e.target.value)}
+                    placeholder="Enter phone number"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="shortBio">Add Short Bio</label>
+                <div className={styles.inputWrap}>
+                  <FileText size={18} className={styles.inputIconTop} />
+                  <textarea
+                    id="shortBio"
+                    className={`${styles.input} ${styles.inputWithIcon} ${styles.textarea}`}
+                    value={shortBio}
+                    onChange={(e) => setShortBio(e.target.value)}
+                    placeholder="Write a short professional bio (optional)"
+                    maxLength={500}
+                  />
+                </div>
+                <p className={styles.helpText}>{shortBio.length}/500</p>
+              </div>
+
+              {lawyerError && <div className={styles.error}>{lawyerError}</div>}
+              {lawyerMessage && <div className={styles.success}>{lawyerMessage}</div>}
+
+              <div className={styles.actions}>
+                <button
+                  type="submit"
+                  className={styles.saveBtn}
+                  disabled={savingLawyerProfile}
+                >
+                  {savingLawyerProfile ? (
+                    <><Loader size={18} className="animate-spin" /> Saving...</>
+                  ) : (
+                    <><Save size={18} /> Save Lawyer Details</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {/* Ghost Mode Card */}
         <div className={`${styles.card} ${styles.ghostCard}`}>

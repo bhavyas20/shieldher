@@ -114,7 +114,20 @@ export default function AuthForm({ initialMode = 'login' }: AuthFormProps) {
 
       if (signInError) throw signInError;
 
-      router.push('/dashboard');
+      const { data: { user } } = await supabase.auth.getUser();
+      const metadataRole = parseRole(
+        typeof user?.user_metadata?.role === 'string' ? user.user_metadata.role : null
+      );
+      const resolvedRole = metadataRole ?? role;
+      const lawyerProfileCompleted = Boolean(user?.user_metadata?.lawyer_profile_completed);
+      const redirectPath =
+        resolvedRole === 'lawyer'
+          ? lawyerProfileCompleted
+            ? '/lawyer/dashboard'
+            : '/lawyer/onboarding'
+          : '/dashboard';
+
+      router.push(redirectPath);
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An error occurred');

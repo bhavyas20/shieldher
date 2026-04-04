@@ -257,14 +257,6 @@
     pointer-events: none;
 }
 
-.inputIconTop {
-    position: absolute;
-    left: 14px;
-    top: 14px;
-    color: var(--text-muted);
-    pointer-events: none;
-}
-
 .input {
     width: 100%;
     padding: 14px 14px;
@@ -280,12 +272,6 @@
 
 .inputWithIcon {
     padding-left: 42px;
-}
-
-.textarea {
-    min-height: 112px;
-    resize: vertical;
-    line-height: 1.5;
 }
 
 .input:focus {
