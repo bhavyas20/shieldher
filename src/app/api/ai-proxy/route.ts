@@ -26,65 +26,79 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Read the image from the request body (multipart form data)
+    // Read the images from the request body (multipart form data)
     const formData = await request.formData();
-    const imageFile = formData.get('image') as File | null;
+    const imageFiles = formData.getAll('image') as File[];
 
-    if (!imageFile) {
-      return NextResponse.json({ error: 'Image file is required' }, { status: 400 });
+    if (imageFiles.length === 0) {
+      return NextResponse.json({ error: 'At least one image file is required' }, { status: 400 });
     }
 
-    // Convert to base64 for Gemini
-    const arrayBuffer = await imageFile.arrayBuffer();
-    const base64Data = Buffer.from(arrayBuffer).toString('base64');
-    const mimeType = imageFile.type || 'image/png';
+    // Convert all images to base64 for Gemini
+    const imageParts = await Promise.all(
+      imageFiles.map(async (file) => {
+        const arrayBuffer = await file.arrayBuffer();
+        return {
+          inlineData: {
+            data: Buffer.from(arrayBuffer).toString('base64'),
+            mimeType: file.type || 'image/png',
+          },
+        };
+      })
+    );
 
     // Initialize the Gemini Vision model
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    // Define the analysis prompt (same as original analyze route)
-    const prompt = `Analyze this chat screenshot for a women's protection application.
+    // Define the analysis prompt with RPA filing data extraction
+    const prompt = `Analyze these chat screenshots together as a single continuous conversation thread for a women's protection application.
           
           CRITICAL INSTRUCTIONS:
-          1. CONTEXT AWARENESS: Carefully evaluate the context, especially the recipient's responses. Distinguish between mutual banter/jokes and actual manipulative, coercive, or threatening behavior. Do not flag obvious mutual joking as critical abuse.
-          2. BEHAVIORAL ANALYSIS: Look for signs of gaslighting, emotional blackmail, isolation tactics, DARVO, or physical threats.
-          3. LEGAL ANALYSIS: Perform a preliminary legal analysis identifying any potential laws or legal frameworks that may have been violated (e.g., cyber harassment, stalking, terroristic threats). You MUST include a disclaimer that this is not official legal advice.
+          1. CONTEXT AWARENESS: Evaluate the entire multi-image conversation. Carefully distinguish between mutual banter/jokes and actual manipulative, coercive, or threatening behavior. Do not flag obvious mutual joking as critical abuse.
+          2. BEHAVIORAL ANALYSIS: Look for signs of gaslighting, emotional blackmail, isolation tactics, DARVO, or physical threats across all provided evidence.
+          3. LEGAL ANALYSIS: Perform a preliminary legal analysis identifying potential laws or legal frameworks violated (e.g., cyber harassment, stalking, terroristic threats). Include a disclaimer that this is not official legal advice.
+          4. RPA FILING DATA EXTRACTION: Extract actionable data needed to file a cyber-crime complaint based on the collective context of all screenshots. Identify the platform used, suspect identifiers (usernames, phone numbers, email), approximate date, and incident category.
           
           Please format your response EXACTLY as a JSON object matching this schema without markdown code blocks:
           {
             "risk_level": "safe" | "low" | "medium" | "high" | "critical",
-            "summary": "A concise overview of the conversation and findings",
+            "summary": "A concise overview of the conversation and findings across all images",
             "flags": [
               {
-                "category": "String (e.g., Direct Threats, Gaslighting, Mutual Banter)",
+                "category": "String",
                 "description": "String describing what was found",
                 "severity": "safe" | "low" | "medium" | "high" | "critical",
-                "evidence": "String quoting the specific text from the image"
+                "evidence": "String quoting specific text from the screenshots"
               }
             ],
             "details": {
               "tone_analysis": "String analyzing the power dynamic and tone",
               "manipulation_indicators": ["Array of strings"],
               "threat_indicators": ["Array of strings"],
-              "recommendations": ["Array of strings with actionable advice"],
+              "recommendations": ["Array of strings"],
               "confidence_score": "Number between 0 and 100",
               "legal_analysis": {
                 "summary": "String",
-                "potential_violations": ["Array of strings naming potential legal issues"],
+                "potential_violations": ["Array of strings"],
                 "disclaimer": "This AI-generated analysis is for informational purposes only and does not constitute professional legal advice. Please consult with a qualified attorney."
+              },
+              "rpa_filing_data": {
+                "platform": "WhatsApp, Instagram, Facebook, Telegram, Twitter, Snapchat, or Other.",
+                "platform_url_or_id": "Suspect's profile URL, username, or handle. null if not found.",
+                "incident_category": "online_harassment, sexual_content, financial_fraud, stalking, impersonation, threats, other",
+                "approximate_date": "Date in YYYY-MM-DD format if mentioned. null if not determinable.",
+                "suspect_info": {
+                  "name": "Suspect's display name or real name. 'Unknown' if not identifiable.",
+                  "identifier_type": "mobile, email, social_media_id, username, or none",
+                  "identifier_value": "The actual phone number, email, handle, or username. null if none found.",
+                  "description": "Brief description of suspect's behavior pattern."
+                }
               }
             }
           }`;
 
-    const imagePart = {
-      inlineData: {
-        data: base64Data,
-        mimeType,
-      },
-    };
-
-    // Generate content — the image is only in RAM during this call
-    const aiResponse = await model.generateContent([prompt, imagePart]);
+    // Generate content — the images are only in RAM during this call
+    const aiResponse = await model.generateContent([prompt, ...imageParts]);
     const text = aiResponse.response.text();
 
     // Parse the JSON safely
@@ -94,8 +108,17 @@ export async function POST(request: NextRequest) {
     // Return the AI result directly to the browser — NOTHING is saved to DB/storage
     return NextResponse.json({ success: true, analysis: result });
 
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('AI Proxy Error:', error);
+
+    // Check if it's a 429 Too Many Requests error
+    if (error?.status === 429 || error?.message?.includes('429')) {
+      return NextResponse.json(
+        { error: 'AI analysis failed: Rate limit exceeded (Too Many Requests). Please wait a moment and try again.' },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'AI analysis failed. Please try again.' },
       { status: 500 }

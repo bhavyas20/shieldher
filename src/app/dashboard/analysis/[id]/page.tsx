@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { type Upload, type AnalysisResult, type AnalysisFlag, type RiskLevel } from "@/lib/types";
-import { retrieveKey, decryptText, decryptFile } from "@/lib/crypto";
-import type { EncryptedPayload } from "@/lib/crypto";
+import { retrieveKey, decryptFile } from "@/lib/crypto";
 import RiskBadge from "@/components/RiskBadge";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import Link from "next/link";
@@ -23,6 +22,12 @@ import {
   Loader,
   CheckCircle,
   Lock,
+  Bot,
+  X,
+  MapPin,
+  User,
+  Mail,
+  Phone,
 } from "lucide-react";
 import styles from "./page.module.css";
 
@@ -41,10 +46,40 @@ interface DecryptedAnalysis {
       potential_violations: string[];
       disclaimer: string;
     };
+    rpa_filing_data?: {
+      platform?: string;
+      platform_url_or_id?: string | null;
+      incident_category?: string;
+      approximate_date?: string | null;
+      suspect_info?: {
+        name?: string;
+        identifier_type?: string;
+        identifier_value?: string | null;
+        description?: string;
+      };
+    };
   };
   created_at: string;
   id: string;
 }
+
+const INDIAN_STATES = [
+  'ANDAMAN AND NICOBAR ISLANDS', 'ANDHRA PRADESH', 'ARUNACHAL PRADESH',
+  'ASSAM', 'BIHAR', 'CHANDIGARH', 'CHHATTISGARH', 'DELHI', 'GOA', 'GUJARAT',
+  'HARYANA', 'HIMACHAL PRADESH', 'JAMMU AND KASHMIR', 'JHARKHAND', 'KARNATAKA',
+  'KERALA', 'LADAKH', 'LAKSHADWEEP', 'MADHYA PRADESH', 'MAHARASHTRA', 'MANIPUR',
+  'MEGHALAYA', 'MIZORAM', 'NAGALAND', 'ODISHA', 'PUDUCHERRY', 'PUNJAB',
+  'RAJASTHAN', 'SIKKIM', 'TAMIL NADU', 'TELANGANA', 'TRIPURA',
+  'UTTAR PRADESH', 'UTTARAKHAND', 'WEST BENGAL',
+];
+
+const SUSPECT_ID_TYPES = [
+  { value: 'none', label: 'Not Available' },
+  { value: 'mobile', label: 'Mobile Number' },
+  { value: 'email', label: 'Email Address' },
+  { value: 'social_media_id', label: 'Social Media ID / Handle' },
+  { value: 'username', label: 'Username' },
+];
 
 export default function AnalysisDetailPage() {
   const params = useParams();
@@ -52,98 +87,41 @@ export default function AnalysisDetailPage() {
   const [upload, setUpload] = useState<Upload | null>(null);
   const [analysis, setAnalysis] = useState<DecryptedAnalysis | null>(null);
   const [decryptedImageUrl, setDecryptedImageUrl] = useState<string | null>(null);
+  const [batchImages, setBatchImages] = useState<Array<{ url: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
+  const [dispatching, setDispatching] = useState(false);
+  const [showDispatchModal, setShowDispatchModal] = useState(false);
+  const [dispatchForm, setDispatchForm] = useState({
+    state: 'DELHI',
+    district: '',
+    email: '',
+    suspectName: '',
+    suspectContact: '',
+    suspectIdType: 'none',
+    incidentDate: '',
+    incidentHour: '10',
+    incidentMinute: '30',
+    incidentAmPm: 'AM',
+  });
+  const decryptedImageRef = useRef<Blob | null>(null);
 
   useEffect(() => {
-    async function fetchAndDecrypt() {
+    async function fetchData() {
       const supabase = createClient();
-      const encryptionKey = await retrieveKey();
 
-      // Fetch upload record
-      const { data: uploadData } = await supabase
-        .from("uploads")
-        .select("*")
-        .eq("id", uploadId)
-        .single();
-
-      if (uploadData) setUpload(uploadData);
-
-      // Fetch analysis record
+      // 1. Fetch current analysis record to check for batch_id
       const { data: analysisData } = await supabase
         .from("analysis_results")
-        .select("*")
+        .select(`
+          *,
+          uploads (*)
+        `)
         .eq("upload_id", uploadId)
         .single();
 
-      if (analysisData && encryptionKey) {
-        try {
-          // Decrypt the analysis fields
-          let decryptedSummary = analysisData.summary || '';
-          let decryptedFlags: AnalysisFlag[] = analysisData.flags || [];
-          let decryptedDetails = analysisData.details || {};
-
-          if (analysisData.encrypted_summary) {
-            const summPayload: EncryptedPayload = JSON.parse(analysisData.encrypted_summary);
-            decryptedSummary = await decryptText(encryptionKey, summPayload);
-          }
-
-          if (analysisData.encrypted_flags) {
-            const flagsPayload: EncryptedPayload = JSON.parse(analysisData.encrypted_flags);
-            const flagsJson = await decryptText(encryptionKey, flagsPayload);
-            decryptedFlags = JSON.parse(flagsJson);
-          }
-
-          if (analysisData.encrypted_details) {
-            const detailsPayload: EncryptedPayload = JSON.parse(analysisData.encrypted_details);
-            const detailsJson = await decryptText(encryptionKey, detailsPayload);
-            decryptedDetails = JSON.parse(detailsJson);
-          }
-
-          setAnalysis({
-            id: analysisData.id,
-            risk_level: analysisData.risk_level,
-            summary: decryptedSummary,
-            flags: decryptedFlags,
-            details: decryptedDetails,
-            created_at: analysisData.created_at,
-          });
-        } catch {
-          // Fallback: use legacy plaintext if decryption fails (old data)
-          setAnalysis({
-            id: analysisData.id,
-            risk_level: analysisData.risk_level,
-            summary: analysisData.summary,
-            flags: analysisData.flags || [],
-            details: analysisData.details || {},
-            created_at: analysisData.created_at,
-          });
-        }
-
-        // Decrypt the image if it's encrypted
-        if (uploadData?.file_iv && encryptionKey) {
-          try {
-            const imageRes = await fetch(uploadData.file_url);
-            const encryptedBuffer = await imageRes.arrayBuffer();
-            const decryptedBlob = await decryptFile(
-              encryptionKey,
-              encryptedBuffer,
-              uploadData.file_iv,
-              uploadData.original_type || 'image/png'
-            );
-            const objectUrl = URL.createObjectURL(decryptedBlob);
-            setDecryptedImageUrl(objectUrl);
-          } catch {
-            // If decryption fails, try showing the URL directly (old unencrypted data)
-            setDecryptedImageUrl(uploadData.file_url);
-          }
-        } else if (uploadData) {
-          // Legacy: unencrypted image
-          setDecryptedImageUrl(uploadData.file_url);
-        }
-      } else if (analysisData) {
-        // No encryption key — show legacy plaintext
+      if (analysisData) {
         setAnalysis({
           id: analysisData.id,
           risk_level: analysisData.risk_level,
@@ -152,14 +130,60 @@ export default function AnalysisDetailPage() {
           details: analysisData.details || {},
           created_at: analysisData.created_at,
         });
-        if (uploadData) {
-          setDecryptedImageUrl(uploadData.file_url);
+
+        const key = await retrieveKey();
+
+        // Helper to decrypt image if IV exists
+        const loadSecureImage = async (url: string, iv: string | null) => {
+          if (!iv || !key) return url; // Fallback to raw if not encrypted or locked
+          try {
+            const res = await fetch(url);
+            if (!res.ok) return url;
+            const buf = await res.arrayBuffer();
+            const blob = await decryptFile(key, buf, iv, 'image/png');
+            return URL.createObjectURL(blob);
+          } catch (e) {
+            console.error('Failed to decrypt image:', e);
+            return url;
+          }
+        };
+
+        if (analysisData.uploads) {
+          setUpload(analysisData.uploads);
+          const url = await loadSecureImage(analysisData.uploads.file_url, analysisData.uploads.file_iv);
+          setDecryptedImageUrl(url);
+        }
+
+        // 2. Check for batch_id and fetch siblings
+        const batchId = (analysisData.details as any)?.batch_id;
+        if (batchId) {
+          const { data: siblingAnalyses } = await supabase
+            .from("analysis_results")
+            .select(`
+              upload_id,
+              uploads (file_url, file_name, file_iv)
+            `)
+            .eq("details->>batch_id", batchId);
+
+          if (siblingAnalyses) {
+            const validAnalyses = siblingAnalyses.filter((a: any) => a.uploads);
+            const imagePromises = validAnalyses.map(async (a: any) => {
+              const secureUrl = await loadSecureImage(a.uploads.file_url, a.uploads.file_iv);
+              return { url: secureUrl, name: a.uploads.file_name };
+            });
+            const images = await Promise.all(imagePromises);
+            setBatchImages(images);
+          }
+        } else if (analysisData.uploads) {
+          // If no batchId, the batch is just this one image
+          const secureUrl = await loadSecureImage(analysisData.uploads.file_url, analysisData.uploads.file_iv);
+          setBatchImages([{ url: secureUrl, name: analysisData.uploads.file_name }]);
         }
       }
 
       setLoading(false);
     }
-    fetchAndDecrypt();
+    fetchData();
   }, [uploadId]);
 
   // Client-side PDF generation using jsPDF
@@ -463,6 +487,115 @@ export default function AnalysisDetailPage() {
     };
   }, [decryptedImageUrl]);
 
+  const openDispatchModal = () => {
+    // Pre-fill from AI-extracted data
+    const rpaData = analysis?.details?.rpa_filing_data;
+    const suspectInfo = rpaData?.suspect_info;
+    const today = new Date().toISOString().split('T')[0];
+    setDispatchForm(prev => ({
+      ...prev,
+      suspectName: suspectInfo?.name || prev.suspectName || '',
+      suspectContact: suspectInfo?.identifier_value || prev.suspectContact || '',
+      suspectIdType: suspectInfo?.identifier_type || prev.suspectIdType || 'none',
+      incidentDate: rpaData?.approximate_date || prev.incidentDate || today,
+    }));
+    setShowDispatchModal(true);
+  };
+
+  const handleDispatch = async () => {
+    setShowDispatchModal(false);
+    setDispatching(true);
+    try {
+      // 1. Fetch and convert ALL images in the batch to base64
+      let fetchWarnings: string[] = [];
+      const evidenceItems = await Promise.all(
+        batchImages.map(async (img) => {
+          try {
+            const res = await fetch(img.url);
+            if (!res.ok) {
+              fetchWarnings.push(`Failed to fetch ${img.name}: HTTP ${res.status}`);
+              return null;
+            }
+            const blob = await res.blob();
+            if (blob.size === 0) {
+              fetchWarnings.push(`Empty image: ${img.name}`);
+              return null;
+            }
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                resolve(dataUrl.split(',')[1]);
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            return {
+              base64,
+              mime_type: blob.type || "image/png",
+            };
+          } catch (e) {
+            console.error(`Failed to process evidence image: ${img.url}`, e);
+            fetchWarnings.push(`Error processing ${img.name}`);
+            return null;
+          }
+        })
+      );
+
+      const validEvidence = evidenceItems.filter((item): item is { base64: string; mime_type: string } => item !== null);
+
+      // Show warning if some images failed but still proceed
+      if (fetchWarnings.length > 0 && validEvidence.length > 0) {
+        console.warn(`Some evidence images could not be fetched: ${fetchWarnings.join(', ')}`);
+      }
+
+      const payload = {
+        analysis: {
+          risk_level: analysis!.risk_level,
+          summary: analysis!.summary,
+          flags: analysis!.flags,
+          details: analysis!.details,
+        },
+        evidence_items: validEvidence.length > 0 ? validEvidence : undefined, // Send only if we have valid items
+        upload_id: uploadId,
+        user_state: dispatchForm.state,
+        user_district: dispatchForm.district,
+        user_email: dispatchForm.email,
+        user_suspect_name: dispatchForm.suspectName,
+        user_suspect_contact: dispatchForm.suspectContact,
+        user_suspect_id_type: dispatchForm.suspectIdType,
+        user_incident_date: dispatchForm.incidentDate,
+        user_incident_hour: dispatchForm.incidentHour,
+        user_incident_minute: dispatchForm.incidentMinute,
+        user_incident_ampm: dispatchForm.incidentAmPm,
+      };
+
+      const res = await fetch('/api/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to dispatch');
+      
+      let successMsg = `Dispatcher initialized successfully! The RPA bot is filling the complaint form.`;
+      if (validEvidence.length > 0) {
+        successMsg += ` ${validEvidence.length} evidence screenshot(s) will be attached.`;
+      } else {
+        successMsg += ` A placeholder evidence file will be used (original images could not be fetched).`;
+      }
+      if (fetchWarnings.length > 0) {
+        successMsg += `\n\nNote: ${fetchWarnings.length} image(s) could not be loaded.`;
+      }
+      successMsg += `\n\nA browser window will open shortly.`;
+      alert(successMsg);
+    } catch (err: unknown) {
+      alert("Failed to run dispatcher: " + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setDispatching(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className={styles.page}>
@@ -489,6 +622,7 @@ export default function AnalysisDetailPage() {
   const details = analysis.details || {};
 
   return (
+    <>
     <div className={styles.page}>
       <Link href="/dashboard/history" className={styles.back}>
         <ArrowLeft size={16} />
@@ -563,23 +697,61 @@ export default function AnalysisDetailPage() {
         </div>
       </div>
 
+      {/* ═══ AUTONOMOUS DISPATCHER BUTTON ═══ */}
+      <div className={styles.dispatcherBanner}>
+        <div className={styles.exportBannerContent}>
+          <div className={styles.exportBannerText}>
+            <Bot size={22} className={styles.dispatcherIcon} />
+            <div>
+              <h3 className={styles.exportBannerTitle}>
+                Autonomous Legal Dispatcher
+              </h3>
+              <p className={styles.exportBannerDesc}>
+                Automatically file a complaint with the appropriate authorities using your local machine.{" "}
+                <strong>This will open a browser window and pre-fill the complex legal forms for you.</strong> You will have a chance to review the complaint before submitting.
+              </p>
+            </div>
+          </div>
+          <button
+            className={styles.dispatcherBtn}
+            onClick={openDispatchModal}
+            disabled={dispatching}
+          >
+            {dispatching ? (
+              <>
+                <Loader size={18} className="animate-spin" />
+                Initializing...
+              </>
+            ) : (
+              <>
+                <Bot size={18} />
+                Run Legal Dispatcher
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Screenshot preview */}
       <div className={styles.screenshotSection}>
         <h2 className={styles.sectionTitle}>
           <Target size={18} />
-          Uploaded Screenshot
+          Uploaded Evidence ({batchImages.length})
         </h2>
-        <div className={styles.screenshotWrap}>
-          {decryptedImageUrl ? (
-            <img
-              src={decryptedImageUrl}
-              alt="Chat screenshot"
-              className={styles.screenshot}
-            />
-          ) : (
+        <div className={styles.screenshotGrid}>
+          {batchImages.map((img, idx) => (
+            <div key={idx} className={styles.screenshotWrap}>
+              <img
+                src={img.url}
+                alt={`Batch screenshot ${idx + 1}`}
+                className={styles.screenshot}
+              />
+            </div>
+          ))}
+          {batchImages.length === 0 && (
             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
               <Lock size={32} />
-              <p>Unable to decrypt image. Please log in again.</p>
+              <p>Unable to decrypt images. Please log in again.</p>
             </div>
           )}
         </div>
@@ -720,5 +892,184 @@ export default function AnalysisDetailPage() {
         </div>
       )}
     </div>
+
+    {/* ═══ PRE-DISPATCH MODAL ═══ */}
+    {showDispatchModal && (
+      <div className={styles.modalOverlay} onClick={() => setShowDispatchModal(false)}>
+        <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.modalHeader}>
+            <div className={styles.modalHeaderLeft}>
+              <Bot size={24} className={styles.dispatcherIcon} />
+              <div>
+                <h3 className={styles.modalTitle}>Pre-Filing Details</h3>
+                <p className={styles.modalSubtitle}>Provide details the AI could not extract from the screenshot</p>
+              </div>
+            </div>
+            <button className={styles.modalClose} onClick={() => setShowDispatchModal(false)}>
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className={styles.modalBody}>
+            <div className={styles.modalFieldGroup}>
+              <label className={styles.modalLabel}>
+                <MapPin size={14} />
+                State / UT
+              </label>
+              <select
+                className={styles.modalSelect}
+                value={dispatchForm.state}
+                onChange={(e) => setDispatchForm(prev => ({ ...prev, state: e.target.value }))}
+              >
+                {INDIAN_STATES.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.modalFieldGroup}>
+              <label className={styles.modalLabel}>
+                <MapPin size={14} />
+                District
+              </label>
+              <input
+                type="text"
+                className={styles.modalInput}
+                placeholder="e.g. New Delhi, South Delhi, etc."
+                value={dispatchForm.district}
+                onChange={(e) => setDispatchForm(prev => ({ ...prev, district: e.target.value }))}
+              />
+            </div>
+
+            <div className={styles.modalFieldGroup}>
+              <label className={styles.modalLabel}>
+                <Mail size={14} />
+                Email Address (for complaint form)
+              </label>
+              <input
+                type="email"
+                className={styles.modalInput}
+                placeholder="your-email@example.com"
+                value={dispatchForm.email}
+                onChange={(e) => setDispatchForm(prev => ({ ...prev, email: e.target.value }))}
+              />
+            </div>
+
+            <div className={styles.modalFieldGroup}>
+              <label className={styles.modalLabel}>
+                <Clock size={14} />
+                Incident Date & Time
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="date"
+                  className={styles.modalInput}
+                  value={dispatchForm.incidentDate}
+                  onChange={(e) => setDispatchForm(prev => ({ ...prev, incidentDate: e.target.value }))}
+                />
+                <select
+                  className={styles.modalSelect}
+                  style={{ width: '80px' }}
+                  value={dispatchForm.incidentHour}
+                  onChange={(e) => setDispatchForm(prev => ({ ...prev, incidentHour: e.target.value }))}
+                >
+                  {Array.from({length: 12}, (_, i) => String(i + 1).padStart(2, '0')).map(h => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+                <select
+                  className={styles.modalSelect}
+                  style={{ width: '80px' }}
+                  value={dispatchForm.incidentMinute}
+                  onChange={(e) => setDispatchForm(prev => ({ ...prev, incidentMinute: e.target.value }))}
+                >
+                  {Array.from({length: 60}, (_, i) => String(i).padStart(2, '0')).map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  className={styles.modalSelect}
+                  style={{ width: '80px' }}
+                  value={dispatchForm.incidentAmPm}
+                  onChange={(e) => setDispatchForm(prev => ({ ...prev, incidentAmPm: e.target.value }))}
+                >
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
+            </div>
+
+            <div className={styles.modalDivider} />
+
+            <div className={styles.modalFieldGroup}>
+              <label className={styles.modalLabel}>
+                <User size={14} />
+                Suspect Name
+              </label>
+              <input
+                type="text"
+                className={styles.modalInput}
+                placeholder="Name or 'Unknown'"
+                value={dispatchForm.suspectName}
+                onChange={(e) => setDispatchForm(prev => ({ ...prev, suspectName: e.target.value }))}
+              />
+            </div>
+
+            <div className={styles.modalFieldGroup}>
+              <label className={styles.modalLabel}>
+                <Phone size={14} />
+                Suspect ID Type
+              </label>
+              <select
+                className={styles.modalSelect}
+                value={dispatchForm.suspectIdType}
+                onChange={(e) => setDispatchForm(prev => ({ ...prev, suspectIdType: e.target.value }))}
+              >
+                {SUSPECT_ID_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.modalFieldGroup}>
+              <label className={styles.modalLabel}>
+                <Phone size={14} />
+                Suspect Contact / ID
+              </label>
+              <input
+                type="text"
+                className={styles.modalInput}
+                placeholder="Phone number, email, or social media handle"
+                value={dispatchForm.suspectContact}
+                onChange={(e) => setDispatchForm(prev => ({ ...prev, suspectContact: e.target.value }))}
+              />
+            </div>
+
+            {analysis?.details?.rpa_filing_data?.platform && (
+              <div className={styles.modalInfoBadge}>
+                AI detected platform: <strong>{analysis.details.rpa_filing_data.platform}</strong>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.modalFooter}>
+            <button
+              className={styles.modalCancelBtn}
+              onClick={() => setShowDispatchModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className={styles.dispatcherBtn}
+              onClick={handleDispatch}
+            >
+              <Bot size={16} />
+              Launch Dispatcher
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

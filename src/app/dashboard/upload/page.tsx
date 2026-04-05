@@ -6,7 +6,6 @@ import { ArrowLeft, Sparkles, Loader, Info, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import UploadZone from '@/components/UploadZone';
 import { createClient } from '@/lib/supabase/client';
-import { retrieveKey, encryptText, encryptFile } from '@/lib/crypto';
 import styles from './page.module.css';
 
 export default function UploadPage() {
@@ -33,57 +32,50 @@ export default function UploadPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Please sign in to upload');
 
-      // E2EE: Retrieve the encryption key from sessionStorage
-      const encryptionKey = await retrieveKey();
-      if (!encryptionKey) {
-        throw new Error('Encryption key not found. Please log out and log back in.');
+      // ═══ STEP 1: Send ALL plaintext images to AI proxy (ephemeral) ═══
+      setAnalyzing(true);
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('image', file);
+      });
+
+      const aiRes = await fetch('/api/ai-proxy', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!aiRes.ok) {
+        const errData = await aiRes.json();
+        throw new Error(errData.error || 'AI analysis failed');
       }
 
+      const { analysis: aiResult } = await aiRes.json();
+
+      // Generate a batch ID to link multiple screenshots in a single session
+      const batchId = crypto.randomUUID();
+
+      // ═══ STEP 2: Upload images and save records ═══
       for (const file of files) {
-        // ═══ STEP 1: Send plaintext image to AI proxy (ephemeral, saves nothing) ═══
-        setAnalyzing(true);
-        const formData = new FormData();
-        formData.append('image', file);
-
-        const aiRes = await fetch('/api/ai-proxy', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!aiRes.ok) {
-          const errData = await aiRes.json();
-          throw new Error(errData.error || 'AI analysis failed');
-        }
-
-        const { analysis: aiResult } = await aiRes.json();
-
-        // ═══ STEP 2: Encrypt everything in the browser ═══
         setAnalyzing(false);
-        setEncrypting(true);
+        setUploading(true);
 
-        // Encrypt the image file
-        const { iv: fileIv, encryptedBlob } = await encryptFile(encryptionKey, file);
-
-        // Encrypt the analysis text fields
-        const encryptedSummary = await encryptText(encryptionKey, aiResult.summary || '');
-        const encryptedFlags = await encryptText(encryptionKey, JSON.stringify(aiResult.flags || []));
-        const encryptedDetails = await encryptText(encryptionKey, JSON.stringify(aiResult.details || {}));
-
-        // ═══ STEP 3: Upload encrypted image blob to Supabase Storage ═══
-        const fileName = `${user.id}/${Date.now()}-${file.name}.enc`;
+        const fileName = `${user.id}/${Date.now()}-${file.name}`;
         const { error: storageError } = await supabase.storage
           .from('screenshots')
-          .upload(fileName, encryptedBlob, {
-            contentType: 'application/octet-stream',
+          .upload(fileName, file, {
+            contentType: file.type || 'image/png',
           });
 
-        if (storageError) throw storageError;
+        if (storageError) {
+          console.error("Storage Error:", storageError);
+          throw new Error(`File upload failed: ${storageError.message}`);
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('screenshots')
           .getPublicUrl(fileName);
 
-        // ═══ STEP 4: Save encrypted records to database ═══
+        // ═══ STEP 3: Save analysis records to database ═══
         const finalStatus =
           aiResult.risk_level === 'high' || aiResult.risk_level === 'critical'
             ? 'flagged'
@@ -96,36 +88,37 @@ export default function UploadPage() {
             user_id: user.id,
             file_url: publicUrl,
             file_name: file.name,
-            file_iv: fileIv,
             original_type: file.type || 'image/png',
             status: finalStatus,
           })
           .select()
           .single();
 
-        if (dbError) throw dbError;
+        if (dbError) {
+          console.error("Upload DB Error:", dbError);
+          throw new Error(`Database error (uploads): ${dbError.message}`);
+        }
 
-        // Create encrypted analysis result
+        // Createplaintext analysis result for permanent history
         if (upload) {
           const { error: analysisError } = await supabase
             .from('analysis_results')
             .insert({
               upload_id: upload.id,
-              risk_level: aiResult.risk_level, // Plaintext — safe for filtering
-              encrypted_summary: JSON.stringify(encryptedSummary),
-              encrypted_flags: JSON.stringify(encryptedFlags),
-              encrypted_details: JSON.stringify(encryptedDetails),
-              encryption_iv: encryptedSummary.iv,
-              // Legacy plaintext fields set to placeholders
-              summary: '[encrypted]',
-              flags: [],
-              details: {},
+              risk_level: aiResult.risk_level,
+              summary: aiResult.summary,
+              flags: aiResult.flags || [],
+              details: {
+                ...(aiResult.details || {}),
+                batch_id: batchId, // Link all uploads in this batch
+              },
             });
 
-          if (analysisError) throw analysisError;
+          if (analysisError) {
+            console.error("Analysis DB Error:", analysisError);
+            throw new Error(`Database error (analysis_results): ${analysisError.message}`);
+          }
         }
-
-        setEncrypting(false);
       }
 
       router.push('/dashboard/history');
@@ -155,7 +148,7 @@ export default function UploadPage() {
       <div className={styles.bentoContainer}>
         <div className={styles.uploadCard}>
           <UploadZone onFilesSelected={handleFilesSelected} isUploading={uploading} />
-          
+
           {error && (
             <div className={styles.error}>{error}</div>
           )}
@@ -174,12 +167,7 @@ export default function UploadPage() {
               ) : analyzing ? (
                 <>
                   <Loader size={18} className="animate-spin" />
-                  AI Analyzing...
-                </>
-              ) : encrypting ? (
-                <>
-                  <Loader size={18} className="animate-spin" />
-                  Encrypting &amp; Saving...
+                  AI Analyzing &amp; Saving...
                 </>
               ) : (
                 <>

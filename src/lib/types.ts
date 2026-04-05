@@ -52,6 +52,18 @@ export interface AnalysisResult {
       potential_violations: string[];
       disclaimer: string;
     };
+    rpa_filing_data?: {
+      platform?: string;
+      platform_url_or_id?: string | null;
+      incident_category?: string;
+      approximate_date?: string | null;
+      suspect_info?: {
+        name?: string;
+        identifier_type?: string;
+        identifier_value?: string | null;
+        description?: string;
+      };
+    };
   };
   created_at: string;
 }

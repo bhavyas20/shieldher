@@ -14,11 +14,9 @@
     text-align: center;
     cursor: pointer;
     overflow: hidden;
-    background: linear-gradient(
-        145deg,
-        rgba(255, 255, 255, 0.8),
-        rgba(255, 255, 255, 0.55)
-    );
+    background: linear-gradient(145deg,
+            rgba(255, 255, 255, 0.8),
+            rgba(255, 255, 255, 0.55));
     box-shadow:
         0 24px 64px rgba(10, 37, 64, 0.16),
         inset 0 1px 0 rgba(255, 255, 255, 0.58);
@@ -37,16 +35,12 @@
     inset: 0;
     background:
         linear-gradient(120deg, rgba(255, 255, 255, 0.42), transparent 40%),
-        radial-gradient(
-            460px 260px at 10% 0%,
+        radial-gradient(460px 260px at 10% 0%,
             rgba(99, 91, 255, 0.16),
-            transparent 70%
-        ),
-        radial-gradient(
-            300px 220px at 88% 14%,
+            transparent 70%),
+        radial-gradient(300px 220px at 88% 14%,
             rgba(255, 171, 145, 0.14),
-            transparent 70%
-        );
+            transparent 70%);
     pointer-events: none;
     opacity: 0.9;
 }
@@ -100,11 +94,9 @@
     align-items: center;
     justify-content: center;
     color: #4f46e5;
-    background: linear-gradient(
-        135deg,
-        rgba(99, 91, 255, 0.2),
-        rgba(99, 91, 255, 0.08)
-    );
+    background: linear-gradient(135deg,
+            rgba(99, 91, 255, 0.2),
+            rgba(99, 91, 255, 0.08));
     border: 1px solid rgba(99, 91, 255, 0.28);
     box-shadow:
         0 14px 30px rgba(99, 91, 255, 0.22),
@@ -150,16 +142,12 @@
     z-index: 1;
     pointer-events: none;
     background:
-        radial-gradient(
-            circle at center,
+        radial-gradient(circle at center,
             rgba(99, 91, 255, 0.16),
-            transparent 58%
-        ),
-        radial-gradient(
-            circle at 20% 80%,
+            transparent 58%),
+        radial-gradient(circle at 20% 80%,
             rgba(255, 171, 145, 0.18),
-            transparent 45%
-        );
+            transparent 45%);
 }
 
 /* ═══════════════════════════════════════
@@ -180,11 +168,9 @@
     padding: 10px;
     border-radius: 14px;
     border: 1px solid rgba(99, 91, 255, 0.2);
-    background: linear-gradient(
-        145deg,
-        rgba(255, 255, 255, 0.74),
-        rgba(255, 255, 255, 0.5)
-    );
+    background: linear-gradient(145deg,
+            rgba(255, 255, 255, 0.74),
+            rgba(255, 255, 255, 0.5));
     box-shadow:
         0 12px 28px rgba(10, 37, 64, 0.12),
         inset 0 1px 0 rgba(255, 255, 255, 0.52);
@@ -275,11 +261,9 @@
 [data-theme="dark"] .dropzone,
 [data-theme="dark"] .preview {
     border-color: rgba(255, 255, 255, 0.14);
-    background: linear-gradient(
-        145deg,
-        rgba(17, 24, 39, 0.74),
-        rgba(17, 24, 39, 0.54)
-    );
+    background: linear-gradient(145deg,
+            rgba(17, 24, 39, 0.74),
+            rgba(17, 24, 39, 0.54));
     box-shadow:
         0 26px 62px rgba(2, 6, 23, 0.58),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -288,16 +272,12 @@
 [data-theme="dark"] .dropzone::before {
     background:
         linear-gradient(120deg, rgba(255, 255, 255, 0.08), transparent 40%),
-        radial-gradient(
-            460px 260px at 10% 0%,
+        radial-gradient(460px 260px at 10% 0%,
             rgba(129, 140, 248, 0.2),
-            transparent 70%
-        ),
-        radial-gradient(
-            300px 220px at 88% 14%,
+            transparent 70%),
+        radial-gradient(300px 220px at 88% 14%,
             rgba(244, 114, 182, 0.16),
-            transparent 70%
-        );
+            transparent 70%);
 }
 
 [data-theme="dark"] .dropTitle {

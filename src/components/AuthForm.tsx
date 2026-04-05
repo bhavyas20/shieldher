@@ -31,35 +31,18 @@ export default function AuthForm() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password, fullName }),
         });
-        
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to sign up');
-        
+
         // After successful creation, sign them in directly
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        
+
         if (signInError) throw signInError;
 
-        // E2EE: Generate a salt and derive encryption key
-        const { generateSalt, deriveKey, storeKey } = await import('@/lib/crypto');
-        const salt = generateSalt();
-
-        // Save the salt to the user's profile
-        const { data: { user: signedInUser } } = await supabase.auth.getUser();
-        if (signedInUser) {
-          await supabase
-            .from('profiles')
-            .update({ encryption_salt: salt })
-            .eq('id', signedInUser.id);
-        }
-
-        // Derive the encryption key and cache it in sessionStorage
-        const encryptionKey = await deriveKey(password, salt);
-        await storeKey(encryptionKey, salt);
-        
         router.push('/dashboard');
         router.refresh();
       } else {
@@ -68,23 +51,6 @@ export default function AuthForm() {
           password,
         });
         if (error) throw error;
-
-        // E2EE: Fetch the user's salt and derive encryption key
-        const { deriveKey, storeKey } = await import('@/lib/crypto');
-        const { data: { user: signedInUser } } = await supabase.auth.getUser();
-        
-        if (signedInUser) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('encryption_salt')
-            .eq('id', signedInUser.id)
-            .single();
-
-          if (profile?.encryption_salt) {
-            const encryptionKey = await deriveKey(password, profile.encryption_salt);
-            await storeKey(encryptionKey, profile.encryption_salt);
-          }
-        }
 
         router.push('/dashboard');
         router.refresh();
