@@ -28,7 +28,7 @@ const PLATFORM_TO_INFO_SOURCE: Record<string, number> = {
 
 // ─── Explicit textual label mapping to defeat index shifts ───
 const FORCED_CATEGORY_LABEL = "Women/Children Related Crime";
-const FORCED_SUBCATEGORY_LABEL = "Sexually explicit act";
+const FORCED_SUBCATEGORY_LABEL = "Sexually Explicit Act";
 
 // ─── Suspect ID type → dropdown index mapping ───
 const SUSPECT_ID_TYPE_MAP: Record<string, number> = {
