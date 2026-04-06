@@ -40,20 +40,25 @@ type StatusMeta = {
 
 type CommunicationThread = {
   id: string;
+  lawyer_id: string;
   lawyer_name: string;
   created_at: string;
   updated_at: string;
 };
 
-type CommunicationMessage = {
+type AcceptedCase = {
+  upload_id: string;
+  lawyer_id: string;
+  lawyer_name: string;
   thread_id: string;
-  sender_role: 'user' | 'lawyer';
-  created_at: string;
+  case_file: string;
+  status: 'accepted';
+  accepted_at: string;
 };
 
 type CaseNotification = {
   id: string;
-  threadId: string;
+  threadId?: string;
   lawyerName: string;
   caseFile: string;
   reference: string;
@@ -64,6 +69,46 @@ type CaseNotification = {
 function parseRole(value: unknown): UserRole | null {
   if (value === 'lawyer' || value === 'user') return value;
   return null;
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+function toText(value: unknown): string {
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'string') return value;
+  return '';
+}
+
+function parseAcceptedCases(metadata: Record<string, unknown>): AcceptedCase[] {
+  const acceptedCasesValue = metadata.accepted_cases;
+  if (!Array.isArray(acceptedCasesValue)) return [];
+
+  const acceptedCases: AcceptedCase[] = [];
+  for (const item of acceptedCasesValue) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const entry = item as Record<string, unknown>;
+    const uploadId = toText(entry.upload_id).trim();
+    const lawyerId = toText(entry.lawyer_id).trim();
+    const status = toText(entry.status).trim().toLowerCase();
+    if (!uploadId || !lawyerId || status !== 'accepted') continue;
+
+    acceptedCases.push({
+      upload_id: uploadId,
+      lawyer_id: lawyerId,
+      lawyer_name: toText(entry.lawyer_name).trim(),
+      thread_id: toText(entry.thread_id).trim(),
+      case_file: toText(entry.case_file).trim(),
+      status: 'accepted',
+      accepted_at: toText(entry.accepted_at).trim(),
+    });
+  }
+
+  return acceptedCases;
 }
 
 function shortDate(dateStr: string): string {
@@ -147,7 +192,10 @@ export default function DashboardPage() {
         return;
       }
 
-      setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
+      const userMetadata = asObject(user.user_metadata);
+      const acceptedCases = parseAcceptedCases(userMetadata);
+
+      setUserName(toText(userMetadata.full_name) || user.email?.split('@')[0] || 'User');
 
       const [{ data: uploadsData }, { data: analysesData }, { data: threadsData, error: threadsError }] = await Promise.all([
         supabase
@@ -163,7 +211,7 @@ export default function DashboardPage() {
           .limit(60),
         supabase
           .from('communication_threads')
-          .select('id, lawyer_name, created_at, updated_at')
+          .select('id, lawyer_id, lawyer_name, created_at, updated_at')
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false })
           .limit(24),
@@ -173,49 +221,65 @@ export default function DashboardPage() {
       if (analysesData) setAnalyses(analysesData);
 
       const threads = (threadsData as CommunicationThread[] | null) ?? [];
-      const uploadsForRefs = (uploadsData ?? []).slice();
+      const uploadsForRefs = (uploadsData ?? []).slice() as UploadType[];
+      const uploadsById = new Map(uploadsForRefs.map((upload) => [upload.id, upload]));
+      const threadsById = new Map(threads.map((thread) => [thread.id, thread]));
+      const threadsByLawyerId = new Map(threads.map((thread) => [thread.lawyer_id, thread]));
       const nextNotifications: CaseNotification[] = [];
 
       if (threadsError) {
         console.error('Could not load communication threads for case notifications:', threadsError.message);
       }
 
-      if (threads.length > 0) {
-        const threadIds = threads.map((thread) => thread.id);
-        const { data: messagesData, error: messagesError } = await supabase
-          .from('communication_messages')
-          .select('thread_id, sender_role, created_at')
-          .in('thread_id', threadIds)
-          .order('created_at', { ascending: false })
-          .limit(400);
+      const acceptedLawyerIds = new Set<string>();
 
-        if (messagesError) {
-          console.error('Could not load communication messages for case notifications:', messagesError.message);
-        }
+      acceptedCases.forEach((acceptedCase) => {
+        const uploadRef = uploadsById.get(acceptedCase.upload_id);
+        const linkedThread =
+          (acceptedCase.thread_id ? threadsById.get(acceptedCase.thread_id) : undefined) ??
+          threadsByLawyerId.get(acceptedCase.lawyer_id);
+        const timestamp =
+          acceptedCase.accepted_at || linkedThread?.updated_at || uploadRef?.created_at || new Date().toISOString();
 
-        const latestLawyerReplyByThread = new Map<string, string>();
-        ((messagesData as CommunicationMessage[] | null) ?? []).forEach((message) => {
-          if (message.sender_role !== 'lawyer') return;
-          if (!latestLawyerReplyByThread.has(message.thread_id)) {
-            latestLawyerReplyByThread.set(message.thread_id, message.created_at);
-          }
+        nextNotifications.push({
+          id: `accepted-${acceptedCase.upload_id}-${acceptedCase.lawyer_id}`,
+          threadId: acceptedCase.thread_id || linkedThread?.id,
+          lawyerName: acceptedCase.lawyer_name || linkedThread?.lawyer_name || 'your lawyer',
+          caseFile: acceptedCase.case_file || uploadRef?.file_name || 'Case file',
+          reference: acceptedCase.upload_id.slice(0, 8).toUpperCase(),
+          status: 'accepted',
+          timestamp,
         });
 
-        threads.forEach((thread, index) => {
-          const lawyerReplyAt = latestLawyerReplyByThread.get(thread.id) ?? '';
-          const uploadRef = uploadsForRefs[index] ?? uploadsForRefs[0];
-          const fallbackFile = uploadRef?.file_name?.trim() || 'Case file';
-          const fallbackReference = (uploadRef?.id || thread.id).slice(0, 8).toUpperCase();
+        acceptedLawyerIds.add(acceptedCase.lawyer_id);
+      });
 
-          nextNotifications.push({
-            id: thread.id,
-            threadId: thread.id,
-            lawyerName: thread.lawyer_name || 'your lawyer',
-            caseFile: fallbackFile,
-            reference: fallbackReference,
-            status: lawyerReplyAt ? 'accepted' : 'pending',
-            timestamp: lawyerReplyAt || thread.updated_at || thread.created_at,
-          });
+      threads.forEach((thread, index) => {
+        if (acceptedLawyerIds.has(thread.lawyer_id)) return;
+        const uploadRef = uploadsForRefs[index] ?? uploadsForRefs[0];
+        const fallbackFile = uploadRef?.file_name?.trim() || 'Case file';
+        const fallbackReference = (uploadRef?.id || thread.id).slice(0, 8).toUpperCase();
+
+        nextNotifications.push({
+          id: `pending-${thread.id}`,
+          threadId: thread.id,
+          lawyerName: thread.lawyer_name || 'your lawyer',
+          caseFile: fallbackFile,
+          reference: fallbackReference,
+          status: 'pending',
+          timestamp: thread.updated_at || thread.created_at,
+        });
+      });
+
+      if (threads.length === 0 && uploadsForRefs.length > 0 && acceptedCases.length === 0) {
+        const firstUpload = uploadsForRefs[0];
+        nextNotifications.push({
+          id: `pending-${firstUpload.id}`,
+          lawyerName: 'your selected lawyer',
+          caseFile: firstUpload.file_name || 'Case file',
+          reference: firstUpload.id.slice(0, 8).toUpperCase(),
+          status: 'pending',
+          timestamp: firstUpload.created_at,
         });
       }
 
@@ -471,7 +535,14 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                <Link href={`/dashboard/communication?thread=${notification.threadId}`} className={styles.caseActionBtn}>
+                <Link
+                  href={
+                    notification.threadId
+                      ? `/dashboard/communication?thread=${notification.threadId}`
+                      : '/dashboard/communication'
+                  }
+                  className={styles.caseActionBtn}
+                >
                   {notification.status === 'accepted' ? 'View Case' : 'Open Chat'}
                 </Link>
               </article>

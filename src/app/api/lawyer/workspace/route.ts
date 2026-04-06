@@ -17,6 +17,11 @@ type AnalysisRow = {
   created_at: string;
 };
 
+type AcceptedCaseRecord = {
+  upload_id: string;
+  accepted_at: string;
+};
+
 type HearingRow = {
   id: string;
   case_title: string;
@@ -86,6 +91,39 @@ function normalize(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function getAcceptedCasesForLawyer(
+  metadata: Record<string, unknown>,
+  requesterLawyerId: string
+): Map<string, AcceptedCaseRecord> {
+  const acceptedCasesValue = metadata.accepted_cases;
+  if (!Array.isArray(acceptedCasesValue)) {
+    return new Map();
+  }
+
+  const acceptedCases = new Map<string, AcceptedCaseRecord>();
+  for (const item of acceptedCasesValue) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const entry = item as Record<string, unknown>;
+    const uploadId = toText(entry.upload_id).trim();
+    const lawyerId = normalize(toText(entry.lawyer_id));
+    const status = normalize(toText(entry.status) || 'accepted');
+    if (!uploadId || !lawyerId || !requesterLawyerId) continue;
+    if (status !== 'accepted' || lawyerId !== requesterLawyerId) continue;
+
+    const acceptedAt =
+      toIso(toText(entry.accepted_at)) ||
+      toIso(toText(entry.updated_at)) ||
+      toIso(toText(entry.created_at));
+
+    acceptedCases.set(uploadId, {
+      upload_id: uploadId,
+      accepted_at: acceptedAt,
+    });
+  }
+
+  return acceptedCases;
+}
+
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
@@ -119,6 +157,7 @@ export async function GET() {
 
     const usersDirectory = new Map<string, UserInfo>();
     const selectedClientIds = new Set<string>();
+    const acceptedCasesByClient = new Map<string, Map<string, AcceptedCaseRecord>>();
     const perPage = 200;
     let page = 1;
 
@@ -174,6 +213,10 @@ export async function GET() {
 
         if (authUser.id !== user.id && role !== 'lawyer' && (selectedById || selectedByName)) {
           selectedClientIds.add(authUser.id);
+          acceptedCasesByClient.set(
+            authUser.id,
+            getAcceptedCasesForLawyer(metadata, requesterLawyerId)
+          );
         }
       }
 
@@ -240,6 +283,9 @@ export async function GET() {
       .map((upload) => {
         const latestAnalysis = latestAnalysisByUpload.get(upload.id);
         const client = usersDirectory.get(upload.user_id);
+        const acceptedCase = acceptedCasesByClient.get(upload.user_id)?.get(upload.id);
+        const acceptedAt = acceptedCase?.accepted_at || '';
+
         return {
           id: `SOS-${upload.id.slice(0, 8)}`,
           upload_id: upload.id,
@@ -247,6 +293,8 @@ export async function GET() {
           location: client?.location || 'Location unavailable',
           time: latestAnalysis?.created_at || upload.created_at,
           severity: toSeverity(latestAnalysis?.risk_level || 'medium'),
+          acceptance_status: acceptedAt ? ('accepted' as const) : ('pending' as const),
+          accepted_at: acceptedAt || undefined,
         };
       })
       .slice(0, 50);

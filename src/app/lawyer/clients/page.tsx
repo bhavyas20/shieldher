@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import LawyerShell from '@/components/lawyer/LawyerShell';
 import Link from 'next/link';
 import { useWorkspaceData } from '@/lib/lawyer/useWorkspaceData';
@@ -12,9 +13,48 @@ function severityClass(severity: 'critical' | 'high' | 'medium') {
 }
 
 export default function ClientsPage() {
-  const { data, loading, error } = useWorkspaceData();
+  const { data, loading, error, reload } = useWorkspaceData();
   const selectedClients = data?.clients ?? [];
   const emergencyAlerts = data?.emergency_alerts ?? [];
+  const [acceptingUploadId, setAcceptingUploadId] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
+  const [actionError, setActionError] = useState('');
+
+  const acceptCase = async (uploadId: string) => {
+    if (!uploadId) return;
+
+    try {
+      setAcceptingUploadId(uploadId);
+      setActionError('');
+      setActionMessage('');
+
+      const res = await fetch('/api/lawyer/cases/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uploadId }),
+      });
+      const payload: unknown = await res.json();
+
+      if (!res.ok) {
+        const errorMessage =
+          payload && typeof payload === 'object' && 'error' in payload
+            ? String((payload as { error?: unknown }).error || '')
+            : '';
+        throw new Error(errorMessage || 'Unable to accept this case');
+      }
+
+      setActionMessage('Case accepted successfully. Client has been notified.');
+      await reload();
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as { message?: unknown }).message || '')
+          : '';
+      setActionError(message || 'Could not accept this case right now.');
+    } finally {
+      setAcceptingUploadId('');
+    }
+  };
 
   return (
     <LawyerShell
@@ -23,6 +63,8 @@ export default function ClientsPage() {
     >
       <section className={styles.panel}>
         <h3 className={styles.panelTitle}>Clients</h3>
+        {actionError ? <div className={styles.placeholder}>{actionError}</div> : null}
+        {actionMessage ? <div className={styles.placeholder}>{actionMessage}</div> : null}
         {error ? (
           <div className={styles.placeholder}>{error}</div>
         ) : loading ? (
@@ -44,12 +86,32 @@ export default function ClientsPage() {
                     {alert.client_name} - {alert.location}
                   </p>
                   <p className={styles.secondary}>{new Date(alert.time).toLocaleString('en-US')}</p>
+                  {alert.acceptance_status === 'accepted' && alert.accepted_at ? (
+                    <p className={styles.secondary}>
+                      Accepted on {new Date(alert.accepted_at).toLocaleString('en-US')}
+                    </p>
+                  ) : null}
                 </div>
                 <span className={severityClass(alert.severity)}>{alert.severity}</span>
                 <div className={styles.actions}>
-                  <button type="button" className={styles.btnPrimary}>
-                    Accept Case
-                  </button>
+                  {alert.acceptance_status === 'accepted' ? (
+                    <button
+                      type="button"
+                      className={`${styles.btnSecondary} ${styles.btnDisabled}`}
+                      disabled
+                    >
+                      Case Accepted
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.btnPrimary}
+                      onClick={() => acceptCase(alert.upload_id)}
+                      disabled={acceptingUploadId === alert.upload_id}
+                    >
+                      {acceptingUploadId === alert.upload_id ? 'Accepting...' : 'Accept Case'}
+                    </button>
+                  )}
                   {alert.upload_id ? (
                     <Link href={`/lawyer/analysis/${alert.upload_id}`} className={styles.btnSecondary}>
                       View Details

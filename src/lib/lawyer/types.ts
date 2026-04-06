@@ -8,6 +8,8 @@ export type WorkspaceEmergencyAlert = {
   location: string;
   time: string;
   severity: EmergencySeverity;
+  acceptance_status: 'pending' | 'accepted';
+  accepted_at?: string;
 };
 
 export type WorkspaceCase = {
