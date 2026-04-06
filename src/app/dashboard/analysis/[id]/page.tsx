@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { type Upload, type AnalysisResult, type AnalysisFlag, type RiskLevel } from "@/lib/types";
 import { retrieveKey, decryptFile } from "@/lib/crypto";
 import RiskBadge from "@/components/RiskBadge";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import indiaData from '@/lib/india-districts.json';
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -919,7 +920,15 @@ export default function AnalysisDetailPage() {
               <select
                 className={styles.modalSelect}
                 value={dispatchForm.state}
-                onChange={(e) => setDispatchForm(prev => ({ ...prev, state: e.target.value }))}
+                onChange={(e) => {
+                  const newState = e.target.value;
+                  const stateDistricts = indiaData.states.find(s => s.state.toUpperCase() === newState || newState.includes(s.state.toUpperCase()) || s.state.toUpperCase().includes(newState))?.districts || [];
+                  setDispatchForm(prev => ({ 
+                    ...prev, 
+                    state: newState,
+                    district: stateDistricts.length > 0 ? stateDistricts[0].toUpperCase() : ''
+                  }));
+                }}
               >
                 {INDIAN_STATES.map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -932,13 +941,16 @@ export default function AnalysisDetailPage() {
                 <MapPin size={14} />
                 District
               </label>
-              <input
-                type="text"
-                className={styles.modalInput}
-                placeholder="e.g. New Delhi, South Delhi, etc."
+              <select
+                className={styles.modalSelect}
                 value={dispatchForm.district}
                 onChange={(e) => setDispatchForm(prev => ({ ...prev, district: e.target.value }))}
-              />
+              >
+                {!dispatchForm.district && <option value="">Select a district</option>}
+                {(indiaData.states.find(s => s.state.toUpperCase() === dispatchForm.state || dispatchForm.state.includes(s.state.toUpperCase()) || s.state.toUpperCase().includes(dispatchForm.state))?.districts || []).map(d => (
+                  <option key={d} value={d.toUpperCase()}>{d.toUpperCase()}</option>
+                ))}
+              </select>
             </div>
 
             <div className={styles.modalFieldGroup}>
