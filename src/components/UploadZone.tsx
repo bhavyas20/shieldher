@@ -14,11 +14,13 @@ interface UploadedFile {
 interface UploadZoneProps {
   onFilesSelected: (files: File[]) => void;
   isUploading?: boolean;
+  variant?: "default" | "dashboard";
 }
 
 export default function UploadZone({
   onFilesSelected,
   isUploading = false,
+  variant = "default",
 }: UploadZoneProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
 
@@ -54,7 +56,7 @@ export default function UploadZone({
   };
 
   return (
-    <div className={styles.wrapper}>
+    <div className={`${styles.wrapper} ${variant === "dashboard" ? styles.dashboardTheme : ""}`}>
       <div
         {...getRootProps()}
         className={`${styles.dropzone} ${isDragActive ? styles.active : ""} ${isUploading ? styles.uploading : ""}`}
@@ -91,8 +93,8 @@ export default function UploadZone({
             <div key={i} className={styles.preview}>
               <div className={styles.previewImgWrap}>
                 {f.file.type.startsWith('audio/') ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'rgba(99, 91, 255, 0.06)' }}>
-                    <FileAudio size={42} style={{ color: 'var(--accent-primary)' }} />
+                  <div className={styles.audioPreview}>
+                    <FileAudio size={42} className={styles.audioIcon} />
                   </div>
                 ) : (
                   <img
