@@ -91,8 +91,9 @@ interface DispatchRequestBody {
   user_district: string;
   user_email: string;
   user_suspect_name: string;
-  user_suspect_contact: string;
+  user_suspect_platform_contact: string;  // Tab 1: Mobile/Social ID for platform field
   user_suspect_id_type: string;
+  user_suspect_id_value: string;          // Tab 2: Value matching the selected ID type
   user_incident_date?: string;
   user_incident_hour?: string;
   user_incident_minute?: string;
@@ -190,7 +191,8 @@ export async function POST(request: NextRequest) {
     // Suspect info: prefer user-provided, fallback to AI-extracted
     const suspectName = body.user_suspect_name || suspectInfo?.name || 'Unknown Online Perpetrator';
     const suspectIdType = body.user_suspect_id_type || suspectInfo?.identifier_type || 'none';
-    const suspectIdValue = body.user_suspect_contact || suspectInfo?.identifier_value || '';
+    const suspectIdValue = body.user_suspect_id_value || suspectInfo?.identifier_value || '';
+    const suspectPlatformContact = body.user_suspect_platform_contact || rpaData?.platform_url_or_id || '';
     const suspectIdTypeIndex = SUSPECT_ID_TYPE_MAP[suspectIdType] || 0;
     // FIX 1/2: Pass human-readable label for portal matching
     const suspectIdTypeLabel = SUSPECT_ID_TYPE_LABELS[suspectIdType] || suspectIdType || 'Not Available';
@@ -223,9 +225,10 @@ export async function POST(request: NextRequest) {
       additional_info: additionalInfo,
       evidence_paths: evidencePaths, // New array of paths
       suspect_name: suspectName,
+      suspect_platform_contact: suspectPlatformContact,  // Tab 1: for #ContentPlaceHolder1_txt_Info
       suspect_id_type_index: suspectIdTypeIndex,
-      suspect_id_type_label: suspectIdTypeLabel,  // FIX 1/2: label for portal matching
-      suspect_id_value: suspectIdValue,
+      suspect_id_type_label: suspectIdTypeLabel,
+      suspect_id_value: suspectIdValue,                   // Tab 2: for suspect ID field
       suspect_description: suspectDescription,
       risk_level: analysis.risk_level,
     };

@@ -107,8 +107,9 @@ export default function AnalysisDetailPage() {
     district: '',
     email: '',
     suspectName: '',
-    suspectContact: '',
+    suspectPlatformContact: '',  // Tab 1: Mobile/Social ID for platform field
     suspectIdType: 'none',
+    suspectIdValue: '',          // Tab 2: Value matching the selected ID type
     incidentDate: '',
     incidentHour: '10',
     incidentMinute: '30',
@@ -504,8 +505,9 @@ export default function AnalysisDetailPage() {
     setDispatchForm(prev => ({
       ...prev,
       suspectName: suspectInfo?.name || prev.suspectName || '',
-      suspectContact: suspectInfo?.identifier_value || prev.suspectContact || '',
+      suspectPlatformContact: rpaData?.platform_url_or_id || prev.suspectPlatformContact || '',
       suspectIdType: suspectInfo?.identifier_type || prev.suspectIdType || 'none',
+      suspectIdValue: suspectInfo?.identifier_value || prev.suspectIdValue || '',
       incidentDate: rpaData?.approximate_date || prev.incidentDate || today,
     }));
     setShowDispatchModal(true);
@@ -571,8 +573,9 @@ export default function AnalysisDetailPage() {
         user_district: dispatchForm.district,
         user_email: dispatchForm.email,
         user_suspect_name: dispatchForm.suspectName,
-        user_suspect_contact: dispatchForm.suspectContact,
+        user_suspect_platform_contact: dispatchForm.suspectPlatformContact,  // Tab 1
         user_suspect_id_type: dispatchForm.suspectIdType,
+        user_suspect_id_value: dispatchForm.suspectIdValue,                  // Tab 2
         user_incident_date: dispatchForm.incidentDate,
         user_incident_hour: dispatchForm.incidentHour,
         user_incident_minute: dispatchForm.incidentMinute,
@@ -1034,6 +1037,22 @@ export default function AnalysisDetailPage() {
 
             <div className={styles.modalDivider} />
 
+            {/* Field 1: Platform contact — used in Tab 1 for the incident platform field */}
+            <div className={styles.modalFieldGroup}>
+              <label className={styles.modalLabel}>
+                <Phone size={14} />
+                Suspect Mobile / Social Media ID
+              </label>
+              <input
+                type="text"
+                className={styles.modalInput}
+                placeholder="WhatsApp number, Instagram handle, profile URL etc."
+                value={dispatchForm.suspectPlatformContact}
+                onChange={(e) => setDispatchForm(prev => ({ ...prev, suspectPlatformContact: e.target.value }))}
+              />
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Used in Tab 1 — incident platform contact field</span>
+            </div>
+
             <div className={styles.modalFieldGroup}>
               <label className={styles.modalLabel}>
                 <User size={14} />
@@ -1064,19 +1083,20 @@ export default function AnalysisDetailPage() {
               </select>
             </div>
 
-            {/* FIX 4: Renamed field — value passed as suspect_id_value in API payload */}
+            {/* Field 2: Suspect ID value — used in Tab 2 for the suspect identification */}
             <div className={styles.modalFieldGroup}>
               <label className={styles.modalLabel}>
                 <Phone size={14} />
-                Suspect Mobile No. / Social Media ID / PAN No.
+                Suspect ID No.
               </label>
               <input
                 type="text"
                 className={styles.modalInput}
                 placeholder="Enter the value matching your selected ID type"
-                value={dispatchForm.suspectContact}
-                onChange={(e) => setDispatchForm(prev => ({ ...prev, suspectContact: e.target.value }))}
+                value={dispatchForm.suspectIdValue}
+                onChange={(e) => setDispatchForm(prev => ({ ...prev, suspectIdValue: e.target.value }))}
               />
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Used in Tab 2 — suspect identification details</span>
             </div>
 
             {analysis?.details?.rpa_filing_data?.platform && (
