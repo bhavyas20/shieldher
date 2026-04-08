@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Loader, MessageSquare, Send } from 'lucide-react';
+import { Loader, MessageSquare, MoreVertical, Search, Send } from 'lucide-react';
 import styles from './CommunicationHub.module.css';
 
 type ConversationItem = {
@@ -40,6 +40,35 @@ function formatDateTime(value: string): string {
   });
 }
 
+function formatDayLabel(value: string): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date
+    .toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+    .toUpperCase();
+}
+
+function dayKey(value: string): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((chunk) => chunk[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
 export default function CommunicationHub() {
   const searchParams = useSearchParams();
   const requestedThreadId = searchParams.get('thread') || '';
@@ -59,6 +88,34 @@ export default function CommunicationHub() {
     () => conversations.find((item) => item.id === activeThreadId) ?? null,
     [conversations, activeThreadId]
   );
+
+  const messageRows = useMemo(() => {
+    const rows: Array<
+      | { type: 'divider'; key: string; label: string }
+      | { type: 'message'; key: string; item: MessageItem }
+    > = [];
+
+    let previousDay = '';
+    for (const message of messages) {
+      const key = dayKey(message.created_at);
+      if (key && key !== previousDay) {
+        rows.push({
+          type: 'divider',
+          key: `divider-${key}`,
+          label: formatDayLabel(message.created_at),
+        });
+        previousDay = key;
+      }
+
+      rows.push({
+        type: 'message',
+        key: message.id,
+        item: message,
+      });
+    }
+
+    return rows;
+  }, [messages]);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -195,6 +252,7 @@ export default function CommunicationHub() {
         <aside className={styles.threadList}>
           <div className={styles.threadHeader}>
             <h3>{role === 'lawyer' ? 'Client Conversations' : 'Lawyer Conversations'}</h3>
+            <p>Encrypted and synced in real time</p>
           </div>
 
           {loading ? (
@@ -243,8 +301,23 @@ export default function CommunicationHub() {
           ) : (
             <>
               <header className={styles.messageHeader}>
-                <h4>{activeConversation.counterpart_name}</h4>
-                <span>Secure communication channel</span>
+                <div className={styles.messageIdentity}>
+                  <span className={styles.avatar}>{getInitials(activeConversation.counterpart_name)}</span>
+                  <div>
+                    <h4>{activeConversation.counterpart_name}</h4>
+                    <span className={styles.messageStatus}>
+                      {role === 'user' ? 'Verified Counsel' : 'Verified Client'}
+                    </span>
+                  </div>
+                </div>
+                <div className={styles.messageActions}>
+                  <button type="button" className={styles.iconBtn} aria-label="Search conversation">
+                    <Search size={16} />
+                  </button>
+                  <button type="button" className={styles.iconBtn} aria-label="Conversation options">
+                    <MoreVertical size={16} />
+                  </button>
+                </div>
               </header>
 
               <div className={styles.messageList}>
@@ -259,11 +332,22 @@ export default function CommunicationHub() {
                     <p>No messages yet. Send the first message.</p>
                   </div>
                 ) : (
-                  messages.map((message) => {
+                  messageRows.map((row) => {
+                    if (row.type === 'divider') {
+                      return (
+                        <div key={row.key} className={styles.dateDivider}>
+                          <span className={styles.dateLine} />
+                          <span className={styles.dateText}>{row.label}</span>
+                          <span className={styles.dateLine} />
+                        </div>
+                      );
+                    }
+
+                    const message = row.item;
                     const mine = message.sender_role === role;
                     return (
                       <div
-                        key={message.id}
+                        key={row.key}
                         className={`${styles.bubbleWrap} ${mine ? styles.bubbleWrapMine : ''}`}
                       >
                         <div className={`${styles.bubble} ${mine ? styles.bubbleMine : styles.bubbleOther}`}>
@@ -286,14 +370,17 @@ export default function CommunicationHub() {
                   maxLength={2000}
                 />
                 <button type="submit" disabled={sending || !draft.trim()}>
-                  {sending ? <Loader size={16} className="animate-spin" /> : <Send size={16} />}
                   <span>{sending ? 'Sending...' : 'Send'}</span>
+                  {sending ? <Loader size={16} className="animate-spin" /> : <Send size={15} />}
                 </button>
               </form>
             </>
           )}
         </div>
       </div>
+      <p className={styles.privacyNote}>
+        Guardian Legal protects your privacy. Messages are encrypted and stored in a secure vault.
+      </p>
     </section>
   );
 }
