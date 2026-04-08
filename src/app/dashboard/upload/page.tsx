@@ -115,7 +115,7 @@ export default function UploadPage() {
         <div className={styles.uploadCard}>
           {!analysisResult ? (
             <>
-              <UploadZone onFilesSelected={handleFilesSelected} isUploading={uploading} />
+              <UploadZone onFilesSelected={handleFilesSelected} isUploading={uploading} variant="dashboard" />
               
               {error && (
                 <div className={styles.error}>{error}</div>

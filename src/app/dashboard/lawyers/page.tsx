@@ -3,7 +3,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { BriefcaseBusiness, Loader, MapPin, Phone, Scale, Search } from 'lucide-react';
+import {
+  BadgeCheck,
+  BriefcaseBusiness,
+  Loader,
+  MapPin,
+  Phone,
+  Plus,
+  Scale,
+  Search,
+} from 'lucide-react';
 import styles from './page.module.css';
 
 type UserRole = 'user' | 'lawyer';
@@ -48,6 +57,18 @@ function formatJoinDate(dateStr: string) {
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+function getInitials(fullName: string) {
+  const parts = fullName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (parts.length === 0) return 'L';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
 }
 
 export default function LawyersDirectoryPage() {
@@ -200,45 +221,55 @@ export default function LawyersDirectoryPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div>
+        <div className={styles.headerMain}>
           <h1 className={styles.title}>Lawyers Directory</h1>
-          <p className={styles.subtitle}>View all lawyers who have signed up on ShieldHer.</p>
+          <p className={styles.subtitle}>
+            Access our curated network of legal professionals dedicated to protection,
+            advocacy, and justice.
+          </p>
         </div>
-        <div className={styles.headerBadge}>{totalLawyers} Profiles</div>
+
+        {!error && (
+          <div className={styles.highlights}>
+            <div className={styles.highlightCard}>
+              <strong>{totalLawyers}</strong>
+              <span>Total Lawyers</span>
+            </div>
+            <div className={styles.highlightCard}>
+              <strong>{cityCount}</strong>
+              <span>Cities Covered</span>
+            </div>
+            <div className={styles.highlightCard}>
+              <strong>{topSpecialization}</strong>
+              <span>Top Specialization</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
       {!error && selectedLawyerName && (
-        <div className={styles.selectedStrip}>Selected Lawyer: {selectedLawyerName}</div>
-      )}
-
-      {!error && (
-        <div className={styles.highlights}>
-          <div className={styles.highlightCard}>
-            <span>Total Lawyers</span>
-            <strong>{totalLawyers}</strong>
-          </div>
-          <div className={styles.highlightCard}>
-            <span>Cities Covered</span>
-            <strong>{cityCount}</strong>
-          </div>
-          <div className={styles.highlightCard}>
-            <span>Top Specialization</span>
-            <strong>{topSpecialization}</strong>
-          </div>
+        <div className={styles.selectedStrip}>
+          <BadgeCheck size={16} />
+          <span>Selected Lawyer: {selectedLawyerName}</span>
         </div>
       )}
 
       {!error && lawyers.length > 0 && (
         <div className={styles.searchWrap}>
-          <Search size={16} />
-          <input
-            type="text"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by name, city, specialization, or bar council ID"
-            aria-label="Search lawyers directory"
-          />
+          <div className={styles.searchField}>
+            <Search size={18} />
+            <input
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by name, city, specialization, or bar council ID"
+              aria-label="Search lawyers directory"
+            />
+          </div>
+          <button type="button" className={styles.searchBtn}>
+            Search
+          </button>
         </div>
       )}
 
@@ -256,60 +287,83 @@ export default function LawyersDirectoryPage() {
         </div>
       ) : (
         <div className={styles.grid}>
-          {filteredLawyers.map((lawyer) => (
+          {filteredLawyers.map((lawyer, index) => (
             <article key={lawyer.id} className={styles.card}>
-              <div className={styles.cardTop}>
-                <span className={styles.chip}>{lawyer.specialization}</span>
-                <span className={styles.joined}>Joined {formatJoinDate(lawyer.joined_at)}</span>
+              <div className={`${styles.portrait} ${styles[`tone${(index % 5) + 1}`]}`}>
+                <div className={styles.portraitShade} />
+                <div className={styles.portraitInitials}>{getInitials(lawyer.full_name)}</div>
+                <span className={styles.badge}>
+                  {selectedLawyerId === lawyer.id ? 'Selected' : 'Active Practitioner'}
+                </span>
               </div>
 
-              <div className={styles.cardHeader}>
-                <div className={styles.avatar}>{lawyer.full_name.charAt(0).toUpperCase()}</div>
-                <div>
-                  <h4 className={styles.name}>{lawyer.full_name}</h4>
-                  <p className={styles.subLabel}>Legal Professional</p>
+              <div className={styles.cardBody}>
+                <div className={styles.cardTop}>
+                  <h4 className={styles.name}>
+                    Adv. {lawyer.full_name.replace(/^adv\.?\s*/i, '')}
+                  </h4>
+                  <span className={styles.joined}>Joined {formatJoinDate(lawyer.joined_at)}</span>
                 </div>
-              </div>
 
-              {lawyer.short_bio ? <p className={styles.bio}>{lawyer.short_bio}</p> : null}
+                <div className={styles.barIdRow}>
+                  <Scale size={14} />
+                  <span>BAR ID: {lawyer.bar_council_id}</span>
+                </div>
 
-              <div className={styles.metaGrid}>
-                <div className={styles.metaItem}>
-                  <MapPin size={15} />
-                  <span>{lawyer.office_city}</span>
+                <div className={styles.metaGrid}>
+                  <div className={styles.metaRow}>
+                    <span>Specialization</span>
+                    <strong>{lawyer.specialization}</strong>
+                  </div>
+                  <div className={styles.metaRow}>
+                    <span>Location</span>
+                    <strong>{lawyer.office_city}</strong>
+                  </div>
+                  <div className={styles.metaRow}>
+                    <span>Experience</span>
+                    <strong>{lawyer.years_of_experience} Years</strong>
+                  </div>
                 </div>
-                <div className={styles.metaItem}>
-                  <Scale size={15} />
-                  <span>{lawyer.years_of_experience} years experience</span>
-                </div>
-                <div className={styles.metaItem}>
-                  <Phone size={15} />
-                  <span>{lawyer.contact_number}</span>
-                </div>
-                <div className={styles.metaItem}>
-                  <BriefcaseBusiness size={15} />
-                  <span>{lawyer.specialization}</span>
-                </div>
-              </div>
 
-              <div className={styles.footer}>
-                <span>Bar Council ID</span>
-                <strong>{lawyer.bar_council_id}</strong>
-              </div>
+                {lawyer.short_bio ? <p className={styles.bio}>{lawyer.short_bio}</p> : null}
 
-              <div className={styles.actionRow}>
-                <button
-                  type="button"
-                  className={`${styles.actionBtn} ${
-                    selectedLawyerId === lawyer.id ? styles.actionBtnSelected : styles.actionBtnPrimary
-                  }`}
-                  onClick={() => chooseLawyer(lawyer)}
-                >
-                  {selectedLawyerId === lawyer.id ? 'View Selected Lawyer' : 'Choose Lawyer'}
-                </button>
+                <div className={styles.inlineMeta}>
+                  <div className={styles.inlineMetaItem}>
+                    <MapPin size={14} />
+                    <span>{lawyer.office_city}</span>
+                  </div>
+                  <div className={styles.inlineMetaItem}>
+                    <BriefcaseBusiness size={14} />
+                    <span>{lawyer.specialization}</span>
+                  </div>
+                  <div className={styles.inlineMetaItem}>
+                    <Phone size={14} />
+                    <span>{lawyer.contact_number}</span>
+                  </div>
+                </div>
+
+                <div className={styles.actionRow}>
+                  <button
+                    type="button"
+                    className={`${styles.actionBtn} ${
+                      selectedLawyerId === lawyer.id ? styles.actionBtnSelected : styles.actionBtnPrimary
+                    }`}
+                    onClick={() => chooseLawyer(lawyer)}
+                  >
+                    {selectedLawyerId === lawyer.id ? 'View Selected Lawyer' : 'Choose Lawyer'}
+                  </button>
+                </div>
               </div>
             </article>
           ))}
+
+          <article className={styles.requestCard}>
+            <div className={styles.requestIcon}>
+              <Plus size={28} />
+            </div>
+            <h4>Request Consultant</h4>
+            <p>Can&apos;t find a specialist? Let our team help you find the right match.</p>
+          </article>
         </div>
       )}
     </div>

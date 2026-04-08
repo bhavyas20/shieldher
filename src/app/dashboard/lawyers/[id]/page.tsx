@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { BriefcaseBusiness, Loader, MapPin, Phone, Scale } from 'lucide-react';
+import { Loader, MapPin, Phone } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import styles from './page.module.css';
 
@@ -48,6 +48,15 @@ function formatJoinDate(dateStr: string) {
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
 }
 
 export default function LawyerProfilePage() {
@@ -234,74 +243,118 @@ export default function LawyerProfilePage() {
   }
 
   const isSelected = selectedLawyerId === lawyer.id;
+  const officeCity = lawyer.office_city || 'Location unavailable';
+  const contactNumber = lawyer.contact_number || 'Not provided';
+  const specialization = lawyer.specialization || 'Not specified';
+  const experienceLabel = lawyer.years_of_experience
+    ? `${lawyer.years_of_experience} years`
+    : 'Not specified';
+  const barId = lawyer.bar_council_id || 'Not provided';
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <p className={styles.label}>Lawyer Profile</p>
-          <h1 className={styles.title}>{lawyer.full_name}</h1>
-          <p className={styles.subtitle}>Joined {formatJoinDate(lawyer.joined_at)}</p>
-        </div>
+      <div className={styles.hero}>
         <Link href="/dashboard/lawyers" className={styles.backLink}>
           Back to Directory
         </Link>
+
+        <div className={styles.heroTop}>
+          <div className={styles.pills}>
+            <span className={styles.label}>Lawyer Profile</span>
+            <span className={`${styles.statusPill} ${isSelected ? styles.statusSelected : ''}`}>
+              {isSelected ? 'Selected Lawyer' : 'Available'}
+            </span>
+          </div>
+          <div className={styles.actionRow}>
+            <button
+              type="button"
+              className={`${styles.actionBtn} ${
+                isSelected ? styles.actionBtnSelected : styles.actionBtnPrimary
+              }`}
+              onClick={handleSelectLawyer}
+              disabled={savingSelection}
+            >
+              {savingSelection ? 'Saving...' : isSelected ? 'Selected Lawyer' : 'Select Lawyer'}
+            </button>
+            <button
+              type="button"
+              className={`${styles.actionBtn} ${styles.actionBtnSecondary}`}
+              onClick={handleContactLawyer}
+              disabled={contacting}
+            >
+              {contacting ? 'Connecting...' : 'Contact Lawyer'}
+            </button>
+          </div>
+        </div>
+
+        <h1 className={styles.title}>{lawyer.full_name}</h1>
+        <p className={styles.subtitle}>
+          Joined {formatJoinDate(lawyer.joined_at)} • {officeCity}
+        </p>
       </div>
 
       {error ? <div className={styles.error}>{error}</div> : null}
       {message ? <div className={styles.success}>{message}</div> : null}
 
-      <section className={styles.profileCard}>
-        <div className={styles.topRow}>
-          <span className={styles.chip}>{lawyer.specialization}</span>
-          <span className={styles.status}>{isSelected ? 'Selected Lawyer' : 'Available'}</span>
-        </div>
+      <div className={styles.contentGrid}>
+        <section className={styles.aboutCard}>
+          <h2 className={styles.aboutTitle}>About the Practice</h2>
+          {lawyer.short_bio ? (
+            <p className={styles.bio}>{lawyer.short_bio}</p>
+          ) : (
+            <p className={styles.bioPlaceholder}>Biography coming soon.</p>
+          )}
 
-        {lawyer.short_bio ? <p className={styles.bio}>{lawyer.short_bio}</p> : null}
+          <div className={styles.statsRow}>
+            <div className={styles.statItem}>
+              <span>Specialization</span>
+              <strong>{specialization}</strong>
+            </div>
+            <div className={styles.statItem}>
+              <span>Experience</span>
+              <strong>{experienceLabel}</strong>
+            </div>
+            <div className={styles.statItem}>
+              <span>Bar ID</span>
+              <strong>{barId}</strong>
+            </div>
+          </div>
+        </section>
 
-        <div className={styles.metaGrid}>
-          <div className={styles.metaItem}>
-            <MapPin size={16} />
-            <span>{lawyer.office_city}</span>
+        <aside className={styles.sideColumn}>
+          <div className={styles.portraitCard}>
+            <div className={styles.portraitFrame}>
+              <div className={styles.portraitInitials}>{getInitials(lawyer.full_name)}</div>
+            </div>
+            <div className={styles.portraitMeta}>
+              <span>Focus</span>
+              <strong>{specialization}</strong>
+            </div>
           </div>
-          <div className={styles.metaItem}>
-            <Scale size={16} />
-            <span>{lawyer.years_of_experience} years experience</span>
-          </div>
-          <div className={styles.metaItem}>
-            <Phone size={16} />
-            <span>{lawyer.contact_number}</span>
-          </div>
-          <div className={styles.metaItem}>
-            <BriefcaseBusiness size={16} />
-            <span>{lawyer.specialization}</span>
-          </div>
-        </div>
 
-        <div className={styles.footer}>
-          <span>Bar Council ID</span>
-          <strong>{lawyer.bar_council_id}</strong>
-        </div>
-
-        <div className={styles.actionRow}>
-          <button
-            type="button"
-            className={`${styles.actionBtn} ${isSelected ? styles.actionBtnSelected : styles.actionBtnPrimary}`}
-            onClick={handleSelectLawyer}
-            disabled={savingSelection}
-          >
-            {savingSelection ? 'Saving...' : isSelected ? 'Selected Lawyer' : 'Select Lawyer'}
-          </button>
-          <button
-            type="button"
-            className={`${styles.actionBtn} ${styles.actionBtnSecondary}`}
-            onClick={handleContactLawyer}
-            disabled={contacting}
-          >
-            {contacting ? 'Connecting...' : 'Contact Lawyer'}
-          </button>
-        </div>
-      </section>
+          <div className={styles.contactCard}>
+            <p className={styles.cardLabel}>Direct Communication</p>
+            <div className={styles.contactItem}>
+              <span className={styles.iconWrap}>
+                <Phone size={16} />
+              </span>
+              <div>
+                <strong>{contactNumber}</strong>
+                <span>Primary contact number</span>
+              </div>
+            </div>
+            <div className={styles.contactItem}>
+              <span className={styles.iconWrap}>
+                <MapPin size={16} />
+              </span>
+              <div>
+                <strong>{officeCity}</strong>
+                <span>Office location</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

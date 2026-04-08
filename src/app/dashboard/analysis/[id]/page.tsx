@@ -13,15 +13,21 @@ import {
   AlertTriangle,
   ShieldCheck,
   Brain,
-  Target,
   MessageSquare,
   Lightbulb,
   Scale,
   FileDown,
   Loader,
   CheckCircle,
+  CalendarDays,
+  Heart,
+  Download,
+  ImageIcon,
 } from "lucide-react";
 import styles from "./page.module.css";
+
+const IMAGE_EXT_REGEX = /\.(png|jpe?g|webp|gif)$/i;
+const AUDIO_EXT_REGEX = /\.(mp3|wav|m4a|ogg)$/i;
 
 export default function AnalysisDetailPage() {
   const params = useParams();
@@ -73,7 +79,6 @@ export default function AnalysisDetailPage() {
         throw new Error(err.error || "Failed to generate report");
       }
 
-      // Download the PDF
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -109,7 +114,7 @@ export default function AnalysisDetailPage() {
       <div className={styles.page}>
         <div className={styles.empty}>
           <h3>Analysis not found</h3>
-          <Link href="/dashboard/history" className="btn btn-secondary">
+          <Link href="/dashboard/history" className={styles.emptyButton}>
             Back to History
           </Link>
         </div>
@@ -128,11 +133,12 @@ export default function AnalysisDetailPage() {
     try {
       pathname = new URL(url).pathname;
     } catch {
-      // Use raw URL if parsing fails
+      pathname = url;
     }
+
     const lower = pathname.toLowerCase();
-    if (/\.(png|jpe?g|webp|gif)$/i.test(lower)) return "image";
-    if (/\.(mp3|wav|m4a|ogg)$/i.test(lower)) return "audio";
+    if (IMAGE_EXT_REGEX.test(lower)) return "image";
+    if (AUDIO_EXT_REGEX.test(lower)) return "audio";
     return "other";
   };
 
@@ -147,6 +153,52 @@ export default function AnalysisDetailPage() {
     return { url, kind, label };
   });
 
+  const confidenceValue =
+    typeof details.confidence_score === "number"
+      ? Math.round(
+          Math.max(
+            0,
+            Math.min(
+              100,
+              (details.confidence_score <= 1
+                ? details.confidence_score * 100
+                : details.confidence_score),
+            ),
+          ) * 10,
+        ) / 10
+      : null;
+
+  const confidenceTone =
+    confidenceValue === null
+      ? "No score"
+      : confidenceValue >= 80
+        ? "High confidence match"
+        : confidenceValue >= 60
+          ? "Moderate confidence"
+          : "Low confidence";
+
+  const categories = analysis.flags?.map((flag) => flag.category.trim()) ?? [];
+  const identifiedPatterns = Array.from(new Set(categories.filter(Boolean))).slice(0, 6);
+
+  const mergedChecklist = [
+    ...(details.recommendations ?? []),
+    ...(details.manipulation_indicators ?? []),
+    ...(details.threat_indicators ?? []),
+  ]
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+
+  const supportChecklist =
+    mergedChecklist.length > 0
+      ? mergedChecklist.slice(0, 4)
+      : [
+          "Preserve original screenshots with visible timestamps.",
+          "Maintain a chronological evidence log for legal review.",
+          "Avoid private follow-ups; keep responses formal and documented.",
+        ];
+
+  const previewMedia = mediaItems.find((item) => item.kind !== "other") ?? mediaItems[0] ?? null;
+
   return (
     <div className={styles.page}>
       <Link href="/dashboard/history" className={styles.back}>
@@ -154,13 +206,30 @@ export default function AnalysisDetailPage() {
         Back to History
       </Link>
 
-      <div className={styles.header}>
-        <div className={styles.headerTop}>
-          <div>
-            <h1 className={styles.title}>Analysis Report</h1>
-            <div className={styles.meta}>
+      <div className={styles.breadcrumb}>
+        <span>History</span>
+        <span className={styles.breadcrumbSlash}>/</span>
+        <span className={styles.breadcrumbActive}>
+          Analysis #{analysis.id.slice(0, 8).toUpperCase()}
+        </span>
+      </div>
+
+      <section className={styles.heroGrid}>
+        <div className={styles.heroMain}>
+          <h1 className={styles.title}>
+            Analysis <span>Report</span>
+          </h1>
+          <p className={styles.subtitle}>
+            A detailed forensic breakdown of digital communication patterns and
+            sentiment mapping for professional evidence collection.
+          </p>
+
+          <div className={styles.metaRow}>
+            <div className={styles.metaItem}>
+              <ImageIcon size={13} />
               <span>{upload.file_name}</span>
-              <span className={styles.dot}>•</span>
+            </div>
+            <div className={styles.metaItem}>
               <Clock size={13} />
               <span>
                 {new Date(analysis.created_at).toLocaleDateString("en-US", {
@@ -172,28 +241,19 @@ export default function AnalysisDetailPage() {
                 })}
               </span>
             </div>
+            <RiskBadge level={analysis.risk_level} size="sm" />
           </div>
-          <RiskBadge level={analysis.risk_level} size="lg" />
         </div>
-      </div>
 
-      {/* ═══ PROMINENT EXPORT BUTTON ═══ */}
-      <div className={styles.exportBanner}>
-        <div className={styles.exportBannerContent}>
-          <div className={styles.exportBannerText}>
-            <FileDown size={22} className={styles.exportBannerIcon} />
-            <div>
-              <h3 className={styles.exportBannerTitle}>
-                Export as Evidence PDF
-              </h3>
-              <p className={styles.exportBannerDesc}>
-                Generate a certified evidence report that{" "}
-                <strong>can be used as supporting evidence</strong> when
-                consulting a lawyer, counselor, or filing a complaint with the
-                authorities.
-              </p>
-            </div>
+        <aside className={styles.exportCard}>
+          <div className={styles.exportHeader}>
+            <FileDown size={20} />
+            <h3>Export as Evidence PDF</h3>
           </div>
+          <p>
+            Generate a timestamped, tamper-evident PDF document suitable for
+            legal proceedings or HR submissions.
+          </p>
           <button
             className={styles.exportBtn}
             onClick={handleExportPDF}
@@ -201,194 +261,259 @@ export default function AnalysisDetailPage() {
           >
             {generating ? (
               <>
-                <Loader size={18} className="animate-spin" />
+                <Loader size={17} className="animate-spin" />
                 Generating...
               </>
             ) : generated ? (
               <>
-                <CheckCircle size={18} />
+                <CheckCircle size={17} />
                 Downloaded!
               </>
             ) : (
               <>
-                <FileDown size={18} />
                 Download PDF Report
+                <Download size={16} />
               </>
             )}
           </button>
-        </div>
-      </div>
+        </aside>
+      </section>
 
-      {/* Uploaded evidence */}
-      <div className={styles.screenshotSection}>
-        <h2 className={styles.sectionTitle}>
-          <Target size={18} />
-          Uploaded Evidence
-        </h2>
-        <div className={styles.mediaGrid}>
-          {mediaItems.map((item) => (
-            <div key={item.url} className={styles.mediaCard}>
-              <div className={styles.mediaLabel}>{item.label}</div>
-              {item.kind === "image" ? (
-                <img
-                  src={item.url}
-                  alt={item.label}
-                  className={styles.mediaImage}
-                  loading="lazy"
-                />
-              ) : item.kind === "audio" ? (
-                <audio controls className={styles.audioPlayer}>
-                  <source src={item.url} />
-                  Your browser does not support the audio element.
-                </audio>
-              ) : (
-                <a
-                  href={item.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={styles.mediaLink}
-                >
-                  Open uploaded file
-                </a>
-              )}
+      <section className={styles.primaryGrid}>
+        <div className={styles.summaryPanel}>
+          <div className={styles.panelHead}>
+            <h2>
+              <Brain size={18} />
+              Analysis Summary
+            </h2>
+            <div className={styles.confidenceScoreWrap}>
+              <strong>
+                {confidenceValue !== null ? `${confidenceValue}%` : "--"}
+              </strong>
+              <span>System confidence</span>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      {/* Summary */}
-      <div className={styles.section}>
-        <h2 className={styles.sectionTitle}>
-          <Brain size={18} />
-          Analysis Summary
-        </h2>
-        <div className={styles.summaryCard}>
-          <p>{analysis.summary}</p>
-          {details.confidence_score !== undefined && (
-            <div className={styles.confidence}>
-              <span>Confidence:</span>
-              <div className={styles.confidenceBar}>
-                <div
-                  className={styles.confidenceFill}
-                  style={{ width: `${details.confidence_score}%` }}
-                />
+          <div className={styles.confidenceTone}>
+            <span className={styles.toneDot} />
+            {confidenceTone}
+          </div>
+
+          <div className={styles.confidenceBar}>
+            <div
+              className={styles.confidenceFill}
+              style={{ width: `${confidenceValue ?? 0}%` }}
+            />
+          </div>
+
+          {identifiedPatterns.length > 0 && (
+            <div className={styles.patternBlock}>
+              <h4>Identified Patterns</h4>
+              <div className={styles.patternChips}>
+                {identifiedPatterns.map((pattern) => (
+                  <span key={pattern} className={styles.patternChip}>
+                    {pattern}
+                  </span>
+                ))}
               </div>
-              <span>{details.confidence_score}%</span>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Flags */}
-      {analysis.flags && analysis.flags.length > 0 && (
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <AlertTriangle size={18} />
-            Detected Flags ({analysis.flags.length})
+          <blockquote className={styles.summaryQuote}>{analysis.summary}</blockquote>
+        </div>
+
+        <div className={styles.tonePanel}>
+          <h2>
+            <MessageSquare size={18} />
+            Tone Analysis
           </h2>
+          <p>
+            {details.tone_analysis ||
+              "No dedicated tone analysis was generated for this report."}
+          </p>
+
+          <div className={styles.toneMeter}>
+            <div className={styles.toneMetaRow}>
+              <span>Communication Risk Signal</span>
+              <span>{confidenceValue !== null ? `${Math.max(0, Math.round(100 - confidenceValue))}%` : "--"}</span>
+            </div>
+            <div className={styles.toneTrack}>
+              <div
+                className={styles.toneFill}
+                style={{ width: `${confidenceValue !== null ? Math.max(6, 100 - confidenceValue) : 12}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.evidenceSection}>
+        <div className={styles.sectionHeading}>
+          <h2>
+            <CalendarDays size={18} />
+            Uploaded Evidence
+          </h2>
+        </div>
+
+        <div className={styles.evidenceGrid}>
+          <div className={styles.evidenceStream}>
+            {mediaItems.length > 0 ? (
+              mediaItems.map((item) => (
+                <article key={item.url} className={styles.evidenceBubble}>
+                  <div className={styles.evidenceLabel}>{item.label}</div>
+                  {item.kind === "image" ? (
+                    <img src={item.url} alt={item.label} className={styles.evidenceImage} loading="lazy" />
+                  ) : item.kind === "audio" ? (
+                    <audio controls className={styles.audioPlayer}>
+                      <source src={item.url} />
+                      Your browser does not support the audio element.
+                    </audio>
+                  ) : (
+                    <a href={item.url} target="_blank" rel="noreferrer" className={styles.mediaLink}>
+                      Open uploaded file
+                    </a>
+                  )}
+                </article>
+              ))
+            ) : (
+              <div className={styles.noMedia}>No media evidence was attached.</div>
+            )}
+          </div>
+
+          <aside className={styles.supportRail}>
+            <div className={styles.checkCard}>
+              {supportChecklist.map((tip, idx) => (
+                <div key={`${tip}-${idx}`} className={styles.checkItem}>
+                  <ShieldCheck size={16} />
+                  <span>{tip}</span>
+                </div>
+              ))}
+              <div className={styles.alonePill}>
+                <Heart size={15} />
+                You are not alone.
+              </div>
+            </div>
+
+            {previewMedia && (
+              <div className={styles.previewCard}>
+                {previewMedia.kind === "image" ? (
+                  <img
+                    src={previewMedia.url}
+                    alt={previewMedia.label}
+                    className={styles.previewImage}
+                    loading="lazy"
+                  />
+                ) : previewMedia.kind === "audio" ? (
+                  <audio controls className={styles.audioPlayer}>
+                    <source src={previewMedia.url} />
+                    Your browser does not support the audio element.
+                  </audio>
+                ) : (
+                  <a href={previewMedia.url} target="_blank" rel="noreferrer" className={styles.mediaLink}>
+                    Open uploaded file
+                  </a>
+                )}
+              </div>
+            )}
+          </aside>
+        </div>
+      </section>
+
+      {analysis.flags && analysis.flags.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionHeading}>
+            <h2>
+              <AlertTriangle size={18} />
+              Detected Flags ({analysis.flags.length})
+            </h2>
+          </div>
           <div className={styles.flagGrid}>
             {analysis.flags.map((flag, i) => (
-              <div key={i} className={styles.flagCard}>
+              <article key={i} className={styles.flagCard}>
                 <div className={styles.flagHeader}>
                   <RiskBadge level={flag.severity} size="sm" />
                   <span className={styles.flagCategory}>{flag.category}</span>
                 </div>
                 <p className={styles.flagDesc}>{flag.description}</p>
                 {flag.evidence && (
-                  <div className={styles.evidence}>
+                  <div className={styles.evidenceText}>
                     <MessageSquare size={13} />
                     <span>&ldquo;{flag.evidence}&rdquo;</span>
                   </div>
                 )}
-              </div>
+              </article>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Tone Analysis */}
-      {details.tone_analysis && (
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <MessageSquare size={18} />
-            Tone Analysis
-          </h2>
-          <div className={styles.detailCard}>
-            <p>{details.tone_analysis}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Manipulation Indicators */}
-      {details.manipulation_indicators &&
-        details.manipulation_indicators.length > 0 && (
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>
+      {details.manipulation_indicators && details.manipulation_indicators.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionHeading}>
+            <h2>
               <AlertTriangle size={18} />
               Manipulation Indicators
             </h2>
-            <ul className={styles.indicatorList}>
-              {details.manipulation_indicators.map((ind, i) => (
-                <li key={i}>{ind}</li>
-              ))}
-            </ul>
           </div>
-        )}
+          <ul className={styles.bulletList}>
+            {details.manipulation_indicators.map((ind, i) => (
+              <li key={i}>{ind}</li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      {/* Recommendations */}
       {details.recommendations && details.recommendations.length > 0 && (
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <Lightbulb size={18} />
-            Recommendations
-          </h2>
-          <ul className={styles.recList}>
+        <section className={styles.section}>
+          <div className={styles.sectionHeading}>
+            <h2>
+              <Lightbulb size={18} />
+              Recommendations
+            </h2>
+          </div>
+          <ul className={styles.recommendationList}>
             {details.recommendations.map((rec, i) => (
               <li key={i}>
-                <ShieldCheck size={14} />
+                <ShieldCheck size={15} />
                 <span>{rec}</span>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
-      {/* Legal Analysis */}
       {details.legal_analysis && (
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <Scale size={18} />
-            Preliminary Legal Analysis
-          </h2>
-          <div className={`${styles.detailCard} ${styles.legalCard}`}>
-            <p className={styles.legalSummary}>
-              {details.legal_analysis.summary}
-            </p>
-
-            {details.legal_analysis.potential_violations &&
-              details.legal_analysis.potential_violations.length > 0 && (
-                <div className={styles.legalViolations}>
-                  <strong className={styles.legalViolationsTitle}>
-                    Potential Violations:
-                  </strong>
-                  <ul className={styles.indicatorList}>
-                    {details.legal_analysis.potential_violations.map(
-                      (violation, i) => (
-                        <li key={i}>{violation}</li>
-                      ),
-                    )}
-                  </ul>
-                </div>
-              )}
-
-            <div className={styles.legalDisclaimer}>
-              <AlertTriangle size={16} className={styles.legalDisclaimerIcon} />
-              <p className={styles.legalDisclaimerText}>
-                <strong>Disclaimer:</strong> {details.legal_analysis.disclaimer}
-              </p>
-            </div>
+        <section className={styles.section}>
+          <div className={styles.sectionHeading}>
+            <h2>
+              <Scale size={18} />
+              Preliminary Legal Analysis
+            </h2>
           </div>
-        </div>
+
+          <div className={styles.legalGrid}>
+            <div className={styles.legalSummaryCard}>
+              <p className={styles.legalSummary}>{details.legal_analysis.summary}</p>
+
+              {details.legal_analysis.potential_violations &&
+                details.legal_analysis.potential_violations.length > 0 && (
+                  <ul className={styles.legalList}>
+                    {details.legal_analysis.potential_violations.map((violation, i) => (
+                      <li key={i}>{violation}</li>
+                    ))}
+                  </ul>
+                )}
+            </div>
+
+            <aside className={styles.disclaimerCard}>
+              <h4>
+                <AlertTriangle size={16} />
+                Legal Disclaimer
+              </h4>
+              <p>{details.legal_analysis.disclaimer}</p>
+            </aside>
+          </div>
+        </section>
       )}
     </div>
   );

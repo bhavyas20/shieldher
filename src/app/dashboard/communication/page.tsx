@@ -39,16 +39,6 @@ export default function DashboardCommunicationPage() {
 
   return (
     <div className={styles.page}>
-      <section className={styles.header}>
-        <div>
-          <p className={styles.label}>Guardian Dashboard</p>
-          <h1 className={styles.title}>Communication</h1>
-          <p className={styles.subtitle}>
-            Chat securely with your selected lawyer and keep all updates in one place.
-          </p>
-        </div>
-      </section>
-
       <CommunicationHub />
     </div>
   );

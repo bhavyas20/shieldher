@@ -10,7 +10,6 @@ import {
   Save,
   Loader,
   Ghost,
-  AlertTriangle,
   ArrowLeft,
   Scale,
   Briefcase,
@@ -268,232 +267,225 @@ export default function SettingsPage() {
 
       <div className={styles.header}>
         <h1 className={styles.title}>Account Settings</h1>
-        <p className={styles.subtitle}>Manage your profile, preferences, and account security.</p>
+        <p className={styles.subtitle}>
+          Manage your editorial sanctuary settings, privacy preferences, and identity credentials.
+        </p>
       </div>
 
       <div className={styles.container}>
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <div className={styles.iconWrap}>
-              <User size={24} />
-            </div>
-            <div>
-              <h2 className={styles.cardTitle}>Personal Information</h2>
-              <p className={styles.cardDesc}>Update your basic profile details.</p>
-            </div>
-          </div>
-          
-          <form onSubmit={handleSaveProfile} className={styles.form}>
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="fullName">Full Name</label>
-              <input
-                id="fullName"
-                type="text"
-                className={styles.input}
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Your full name"
-              />
-            </div>
-            
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="email">Email Address</label>
-              <div className={styles.inputWrap}>
-                <Mail size={18} className={styles.inputIcon} />
-                <input
-                  id="email"
-                  type="email"
-                  className={`${styles.input} ${styles.inputWithIcon} ${styles.disabledInput}`}
-                  value={email}
-                  disabled
-                  readOnly
-                />
-              </div>
-              <p className={styles.helpText}>Email address cannot be changed currently.</p>
-            </div>
-
-            {error && <div className={styles.error}>{error}</div>}
-            {message && <div className={styles.success}>{message}</div>}
-
-            <div className={styles.actions}>
-              <button 
-                type="submit" 
-                className={styles.saveBtn}
-                disabled={saving}
-              >
-                {saving ? (
-                  <><Loader size={18} className="animate-spin" /> Saving...</>
-                ) : (
-                  <><Save size={18} /> Save Changes</>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {isLawyer && (
-          <div className={`${styles.card} ${styles.lawyerCard}`}>
+        <div className={styles.primaryColumn}>
+          <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <div className={`${styles.iconWrap} ${styles.lawyerIconWrap}`}>
-                <Scale size={24} />
+              <div className={styles.iconWrap}>
+                <User size={22} />
               </div>
               <div>
-                <h2 className={styles.cardTitle}>Lawyer Information</h2>
-                <p className={styles.cardDesc}>Manage your professional profile details.</p>
+                <h2 className={styles.cardTitle}>Personal Identity</h2>
+                <p className={styles.cardDesc}>Update your profile credentials.</p>
               </div>
             </div>
 
-            <form onSubmit={handleSaveLawyerProfile} className={styles.form}>
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="barCouncilId">Bar Council ID</label>
-                <input
-                  id="barCouncilId"
-                  type="text"
-                  className={styles.input}
-                  value={barCouncilId}
-                  onChange={(e) => setBarCouncilId(e.target.value)}
-                  placeholder="Enter your registration ID"
-                  required
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="specialization">Primary Specialization</label>
-                <div className={styles.inputWrap}>
-                  <Briefcase size={18} className={styles.inputIcon} />
-                  <select
-                    id="specialization"
-                    className={`${styles.input} ${styles.inputWithIcon}`}
-                    value={specialization}
-                    onChange={(e) => setSpecialization(e.target.value)}
-                    required
-                  >
-                    <option value="">Select specialization</option>
-                    <option value="Family Law">Family Law</option>
-                    <option value="Criminal Law">Criminal Law</option>
-                    <option value="Civil Litigation">Civil Litigation</option>
-                    <option value="Cyber Law">Cyber Law</option>
-                    <option value="Women and Child Rights">Women and Child Rights</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className={styles.formGrid}>
+            <form onSubmit={handleSaveProfile} className={`${styles.form} ${styles.identityForm}`}>
+              <div className={styles.identityGrid}>
                 <div className={styles.field}>
-                  <label className={styles.label} htmlFor="yearsExperience">Years of Experience</label>
+                  <label className={styles.label} htmlFor="fullName">Full Name</label>
                   <input
-                    id="yearsExperience"
-                    type="number"
-                    min={0}
-                    max={70}
+                    id="fullName"
+                    type="text"
                     className={styles.input}
-                    value={yearsExperience}
-                    onChange={(e) => setYearsExperience(e.target.value)}
-                    placeholder="e.g. 6"
-                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Your full name"
                   />
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label} htmlFor="officeCity">Office City</label>
+                  <label className={styles.label} htmlFor="email">Email Address</label>
                   <div className={styles.inputWrap}>
-                    <MapPin size={18} className={styles.inputIcon} />
+                    <Mail size={18} className={styles.inputIcon} />
                     <input
-                      id="officeCity"
-                      type="text"
-                      className={`${styles.input} ${styles.inputWithIcon}`}
-                      value={officeCity}
-                      onChange={(e) => setOfficeCity(e.target.value)}
-                      placeholder="e.g. Delhi"
-                      required
+                      id="email"
+                      type="email"
+                      className={`${styles.input} ${styles.inputWithIcon} ${styles.disabledInput}`}
+                      value={email}
+                      disabled
+                      readOnly
                     />
                   </div>
                 </div>
               </div>
 
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="contactNumber">Contact Number</label>
-                <div className={styles.inputWrap}>
-                  <Phone size={18} className={styles.inputIcon} />
-                  <input
-                    id="contactNumber"
-                    type="tel"
-                    className={`${styles.input} ${styles.inputWithIcon}`}
-                    value={contactNumber}
-                    onChange={(e) => setContactNumber(e.target.value)}
-                    placeholder="Enter phone number"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="shortBio">Add Short Bio</label>
-                <div className={styles.inputWrap}>
-                  <FileText size={18} className={styles.inputIconTop} />
-                  <textarea
-                    id="shortBio"
-                    className={`${styles.input} ${styles.inputWithIcon} ${styles.textarea}`}
-                    value={shortBio}
-                    onChange={(e) => setShortBio(e.target.value)}
-                    placeholder="Write a short professional bio (optional)"
-                    maxLength={500}
-                  />
-                </div>
-                <p className={styles.helpText}>{shortBio.length}/500</p>
-              </div>
-
-              {lawyerError && <div className={styles.error}>{lawyerError}</div>}
-              {lawyerMessage && <div className={styles.success}>{lawyerMessage}</div>}
+              <p className={styles.helpText}>Email address cannot be changed currently.</p>
+              {error && <div className={styles.error}>{error}</div>}
+              {message && <div className={styles.success}>{message}</div>}
 
               <div className={styles.actions}>
                 <button
                   type="submit"
                   className={styles.saveBtn}
-                  disabled={savingLawyerProfile}
+                  disabled={saving}
                 >
-                  {savingLawyerProfile ? (
+                  {saving ? (
                     <><Loader size={18} className="animate-spin" /> Saving...</>
                   ) : (
-                    <><Save size={18} /> Save Lawyer Details</>
+                    <><Save size={18} /> Save Changes</>
                   )}
                 </button>
               </div>
             </form>
           </div>
-        )}
 
-        {/* Ghost Mode Card */}
-        <div className={`${styles.card} ${styles.ghostCard}`}>
-          <div className={styles.cardHeader}>
-            <div className={`${styles.iconWrap} ${styles.ghostIconWrap}`}>
-              <Ghost size={24} />
-            </div>
-            <div className={styles.ghostHeaderGroup}>
-              <div>
-                <h2 className={styles.cardTitle}>Ghost Mode</h2>
-                <p className={styles.cardDesc}>Maximum privacy for high-risk situations.</p>
+          {isLawyer && (
+            <div className={`${styles.card} ${styles.lawyerCard}`}>
+              <div className={styles.cardHeader}>
+                <div className={`${styles.iconWrap} ${styles.lawyerIconWrap}`}>
+                  <Scale size={22} />
+                </div>
+                <div>
+                  <h2 className={styles.cardTitle}>Lawyer Information</h2>
+                  <p className={styles.cardDesc}>Manage your professional profile details.</p>
+                </div>
               </div>
-              <span className={`${styles.ghostBadge} ${ghostMode ? styles.ghostBadgeActive : ''}`}>
-                {ghostMode ? 'ACTIVE' : 'OFF'}
-              </span>
-            </div>
-          </div>
 
-          <div className={styles.ghostContent}>
+              <form onSubmit={handleSaveLawyerProfile} className={styles.form}>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="barCouncilId">Bar Council ID</label>
+                  <input
+                    id="barCouncilId"
+                    type="text"
+                    className={styles.input}
+                    value={barCouncilId}
+                    onChange={(e) => setBarCouncilId(e.target.value)}
+                    placeholder="Enter your registration ID"
+                    required
+                  />
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="specialization">Primary Specialization</label>
+                  <div className={styles.inputWrap}>
+                    <Briefcase size={18} className={styles.inputIcon} />
+                    <select
+                      id="specialization"
+                      className={`${styles.input} ${styles.inputWithIcon}`}
+                      value={specialization}
+                      onChange={(e) => setSpecialization(e.target.value)}
+                      required
+                    >
+                      <option value="">Select specialization</option>
+                      <option value="Family Law">Family Law</option>
+                      <option value="Criminal Law">Criminal Law</option>
+                      <option value="Civil Litigation">Civil Litigation</option>
+                      <option value="Cyber Law">Cyber Law</option>
+                      <option value="Women and Child Rights">Women and Child Rights</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className={styles.formGrid}>
+                  <div className={styles.field}>
+                    <label className={styles.label} htmlFor="yearsExperience">Years of Experience</label>
+                    <input
+                      id="yearsExperience"
+                      type="number"
+                      min={0}
+                      max={70}
+                      className={styles.input}
+                      value={yearsExperience}
+                      onChange={(e) => setYearsExperience(e.target.value)}
+                      placeholder="e.g. 6"
+                      required
+                    />
+                  </div>
+
+                  <div className={styles.field}>
+                    <label className={styles.label} htmlFor="officeCity">Office City</label>
+                    <div className={styles.inputWrap}>
+                      <MapPin size={18} className={styles.inputIcon} />
+                      <input
+                        id="officeCity"
+                        type="text"
+                        className={`${styles.input} ${styles.inputWithIcon}`}
+                        value={officeCity}
+                        onChange={(e) => setOfficeCity(e.target.value)}
+                        placeholder="e.g. Delhi"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="contactNumber">Contact Number</label>
+                  <div className={styles.inputWrap}>
+                    <Phone size={18} className={styles.inputIcon} />
+                    <input
+                      id="contactNumber"
+                      type="tel"
+                      className={`${styles.input} ${styles.inputWithIcon}`}
+                      value={contactNumber}
+                      onChange={(e) => setContactNumber(e.target.value)}
+                      placeholder="Enter phone number"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="shortBio">Add Short Bio</label>
+                  <div className={styles.inputWrap}>
+                    <FileText size={18} className={styles.inputIconTop} />
+                    <textarea
+                      id="shortBio"
+                      className={`${styles.input} ${styles.inputWithIcon} ${styles.textarea}`}
+                      value={shortBio}
+                      onChange={(e) => setShortBio(e.target.value)}
+                      placeholder="Write a short professional bio (optional)"
+                      maxLength={500}
+                    />
+                  </div>
+                  <p className={styles.helpText}>{shortBio.length}/500</p>
+                </div>
+
+                {lawyerError && <div className={styles.error}>{lawyerError}</div>}
+                {lawyerMessage && <div className={styles.success}>{lawyerMessage}</div>}
+
+                <div className={styles.actions}>
+                  <button
+                    type="submit"
+                    className={styles.saveBtn}
+                    disabled={savingLawyerProfile}
+                  >
+                    {savingLawyerProfile ? (
+                      <><Loader size={18} className="animate-spin" /> Saving...</>
+                    ) : (
+                      <><Save size={18} /> Save Lawyer Details</>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.secondaryColumn}>
+          <div className={`${styles.card} ${styles.ghostCard}`}>
+            <div className={styles.cardHeader}>
+              <div className={`${styles.iconWrap} ${styles.ghostIconWrap}`}>
+                <Ghost size={22} />
+              </div>
+              <div className={styles.ghostHeaderGroup}>
+                <h2 className={styles.cardTitle}>Ghost Mode</h2>
+                <span className={`${styles.ghostBadge} ${ghostMode ? styles.ghostBadgeActive : ''}`}>
+                  {ghostMode ? 'ACTIVE' : 'OFF'}
+                </span>
+              </div>
+            </div>
             <p className={styles.ghostText}>
-              When enabled, all your uploaded screenshots, analysis results, and generated reports 
-              will be <strong>automatically deleted 24 hours</strong> after creation.
+              Enhanced privacy: hide your reading activity, status visibility, and sensitive traces
+              from platform records.
             </p>
-
-            <div className={styles.ghostWarning}>
-              <AlertTriangle size={18} className={styles.warningIcon} />
-              <p>
-                <strong>Warning:</strong> Deleted data cannot be recovered. Make sure to download 
-                any evidence PDFs you need before the 24-hour window expires.
-              </p>
-            </div>
 
             <div className={styles.ghostToggleRow}>
               <div>
@@ -514,27 +506,27 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
-        </div>
 
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <div className={`${styles.iconWrap} ${styles.dangerIconWrap}`}>
-              <Shield size={24} />
+          <div className={`${styles.card} ${styles.securityCard}`}>
+            <div className={styles.cardHeader}>
+              <div className={`${styles.iconWrap} ${styles.dangerIconWrap}`}>
+                <Shield size={22} />
+              </div>
+              <div>
+                <h2 className={styles.cardTitle}>End Session</h2>
+                <p className={styles.cardDesc}>Securely sign out of Editorial Guardian.</p>
+              </div>
             </div>
-            <div>
-              <h2 className={styles.cardTitle}>Security & Access</h2>
-              <p className={styles.cardDesc}>Manage your session.</p>
+
+            <div className={styles.securitySection}>
+              <p className={styles.securityText}>
+                Sign out from this device while preserving your encrypted records.
+              </p>
+              <button onClick={handleSignOut} className={styles.signOutBtn}>
+                <span>Sign Out</span>
+                <LogOut size={15} />
+              </button>
             </div>
-          </div>
-          
-          <div className={styles.securitySection}>
-            <p className={styles.securityText}>
-              Ensure your account remains secure. You can sign out of your account on this device here.
-            </p>
-            <button onClick={handleSignOut} className={styles.signOutBtn}>
-              <LogOut size={16} />
-              Sign Out
-            </button>
           </div>
         </div>
       </div>
