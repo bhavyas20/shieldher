@@ -2,32 +2,24 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { type Upload, type AnalysisResult, type AnalysisFlag, type RiskLevel } from "@/lib/types";
+import { type Upload, type AnalysisFlag, type RiskLevel } from "@/lib/types";
 import { retrieveKey, uint8ArrayToBase64 } from "@/lib/crypto";
 import RiskBadge from "@/components/RiskBadge";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import DispatchModal, { type DispatchFormData } from "@/components/DispatchModal";
 import Link from "next/link";
 import {
   ArrowLeft,
   Clock,
   AlertTriangle,
   ShieldCheck,
-  Brain,
-  MessageSquare,
-  Lightbulb,
-  Scale,
   FileDown,
   CheckCircle,
   Lock,
   Bot,
-  MapPin,
-  CalendarDays,
   ImageIcon,
   Activity,
   Zap,
-  Briefcase,
-  HelpCircle,
 } from "lucide-react";
 import styles from "./page.module.css";
 
@@ -62,6 +54,54 @@ interface DecryptedAnalysis {
   };
   created_at: string;
   id: string;
+}
+
+type DispatchStatus =
+  | { type: "success"; message: string }
+  | { type: "error"; message: string };
+
+function normalizeSuspectIdType(value?: string | null): string {
+  if (!value) return "none";
+  const normalized = value.trim().toLowerCase();
+  const allowedTypes = new Set([
+    "none",
+    "mobile_number",
+    "email_address",
+    "social_media_id",
+    "pan_card",
+    "international_number",
+    "landline_number",
+    "whatsapp_call",
+    "aadhaar_card",
+    "passport",
+    "bank_account",
+    "upi_id",
+  ]);
+  return allowedTypes.has(normalized) ? normalized : "none";
+}
+
+function normalizeIncidentDate(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const directDate = value.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (directDate?.[1]) return directDate[1];
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed.toISOString().split("T")[0];
+}
+
+function extractEvidenceItems(mediaArray: Array<{ url: string; decrypted: boolean }>) {
+  return mediaArray.reduce<Array<{ base64: string; mime_type: string }>>((acc, media) => {
+    if (!media.decrypted) return acc;
+
+    const match = media.url.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) return acc;
+
+    const [, mime_type, base64] = match;
+    if (!mime_type || !base64) return acc;
+    acc.push({ base64, mime_type });
+    return acc;
+  }, []);
 }
 
 /**
@@ -104,7 +144,73 @@ export default function AnalysisDetailPage() {
   const [analysis, setAnalysis] = useState<DecryptedAnalysis | null>(null);
   const [decryptedMediaArray, setDecryptedMediaArray] = useState<{url: string, decrypted: boolean}[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const generating = false;
+  const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchStatus, setDispatchStatus] = useState<DispatchStatus | null>(null);
+
+  const openDispatchModal = useCallback(() => {
+    setDispatchStatus(null);
+    setIsDispatchModalOpen(true);
+  }, []);
+
+  const closeDispatchModal = useCallback(() => {
+    if (dispatching) return;
+    setIsDispatchModalOpen(false);
+  }, [dispatching]);
+
+  const handleDispatchConfirm = useCallback(async (formData: DispatchFormData) => {
+    if (!analysis) {
+      setDispatchStatus({ type: "error", message: "Analysis data is not available for dispatch yet." });
+      return;
+    }
+
+    setDispatching(true);
+    setDispatchStatus(null);
+
+    try {
+      const evidenceItems = extractEvidenceItems(decryptedMediaArray);
+
+      const payload: Record<string, unknown> = {
+        analysis,
+        upload_id: uploadId,
+        ...formData,
+      };
+
+      if (evidenceItems.length > 0) {
+        payload.evidence_items = evidenceItems;
+      }
+
+      const res = await fetch("/api/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          typeof result?.error === "string"
+            ? result.error
+            : "Failed to initialize dispatcher bot."
+        );
+      }
+
+      const successMessage =
+        typeof result?.message === "string"
+          ? result.message
+          : "Dispatcher initialized successfully. The RPA bot is now launching.";
+
+      setDispatchStatus({ type: "success", message: successMessage });
+      setIsDispatchModalOpen(false);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to initialize dispatcher bot.";
+      setDispatchStatus({ type: "error", message });
+    } finally {
+      setDispatching(false);
+    }
+  }, [analysis, decryptedMediaArray, uploadId]);
 
   useEffect(() => {
     async function fetchData() {
@@ -226,6 +332,34 @@ export default function AnalysisDetailPage() {
              {generating ? 'Compiling...' : 'Download Forensic PDF'}
            </button>
         </div>
+      </section>
+
+      <section className={styles.dispatcherBanner}>
+        <div className={styles.dispatcherContent}>
+          <div className={styles.dispatcherTextBlock}>
+            <Bot size={22} className={styles.dispatcherIcon} />
+            <div>
+              <h3 className={styles.dispatcherTitle}>Autonomous Legal Dispatcher</h3>
+              <p className={styles.dispatcherDesc}>
+                Run the RPA dispatcher bot to auto-fill the National Cyber Crime portal with your analysis and evidence.
+                You can review details in the launch form before dispatching.
+              </p>
+            </div>
+          </div>
+          <button
+            className={styles.dispatcherBtn}
+            onClick={openDispatchModal}
+            disabled={dispatching}
+          >
+            <Bot size={18} />
+            {dispatching ? "Launching Dispatcher..." : "Run Legal Dispatcher"}
+          </button>
+        </div>
+        {dispatchStatus && (
+          <p className={styles.dispatchStatus} data-status={dispatchStatus.type}>
+            {dispatchStatus.message}
+          </p>
+        )}
       </section>
 
       <div className={styles.primaryGrid}>
@@ -354,6 +488,25 @@ export default function AnalysisDetailPage() {
            )}
         </aside>
       </div>
+
+      <DispatchModal
+        isOpen={isDispatchModalOpen}
+        onClose={closeDispatchModal}
+        onConfirm={handleDispatchConfirm}
+        isLoading={dispatching}
+        initialData={{
+          suspect_name: analysis.details?.rpa_filing_data?.suspect_info?.name,
+          suspect_platform_contact: analysis.details?.rpa_filing_data?.platform_url_or_id || "",
+          suspect_id_type: normalizeSuspectIdType(
+            analysis.details?.rpa_filing_data?.suspect_info?.identifier_type
+          ),
+          suspect_id_value:
+            analysis.details?.rpa_filing_data?.suspect_info?.identifier_value || "",
+          incident_date: normalizeIncidentDate(
+            analysis.details?.rpa_filing_data?.approximate_date
+          ),
+        }}
+      />
     </div>
   );
 }
