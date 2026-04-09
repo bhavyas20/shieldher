@@ -1,8 +1,9 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, WheelEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader, MessageSquare, MoreVertical, Search, Send } from 'lucide-react';
+import { isSystemCommunicationMessage } from '@/lib/communication/messageFilters';
 import styles from './CommunicationHub.module.css';
 
 type ConversationItem = {
@@ -73,6 +74,8 @@ export default function CommunicationHub() {
   const searchParams = useSearchParams();
   const requestedThreadId = searchParams.get('thread') || '';
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const threadItemsRef = useRef<HTMLDivElement | null>(null);
+  const messageListRef = useRef<HTMLDivElement | null>(null);
 
   const [role, setRole] = useState<'user' | 'lawyer'>('user');
   const [loading, setLoading] = useState(true);
@@ -89,6 +92,11 @@ export default function CommunicationHub() {
     [conversations, activeThreadId]
   );
 
+  const visibleMessages = useMemo(
+    () => messages.filter((message) => !isSystemCommunicationMessage(message.body)),
+    [messages]
+  );
+
   const messageRows = useMemo(() => {
     const rows: Array<
       | { type: 'divider'; key: string; label: string }
@@ -96,7 +104,7 @@ export default function CommunicationHub() {
     > = [];
 
     let previousDay = '';
-    for (const message of messages) {
+    for (const message of visibleMessages) {
       const key = dayKey(message.created_at);
       if (key && key !== previousDay) {
         rows.push({
@@ -115,7 +123,7 @@ export default function CommunicationHub() {
     }
 
     return rows;
-  }, [messages]);
+  }, [visibleMessages]);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -172,6 +180,28 @@ export default function CommunicationHub() {
       setLoadingMessages(false);
     }
   }, []);
+
+  const handlePrioritizedInnerScroll = useCallback(
+    (event: WheelEvent<HTMLDivElement>, target: 'threads' | 'messages') => {
+      const scrollEl = target === 'threads' ? threadItemsRef.current : messageListRef.current;
+      if (!scrollEl) return;
+
+      const deltaY = event.deltaY;
+      if (!deltaY || scrollEl.scrollHeight <= scrollEl.clientHeight) return;
+
+      const atTop = scrollEl.scrollTop <= 0;
+      const atBottom = Math.ceil(scrollEl.scrollTop + scrollEl.clientHeight) >= scrollEl.scrollHeight;
+      const goingDown = deltaY > 0;
+      const canScrollInside = goingDown ? !atBottom : !atTop;
+
+      if (canScrollInside) {
+        scrollEl.scrollTop += deltaY;
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    },
+    []
+  );
 
   const markRead = useCallback(async (threadId: string) => {
     if (!threadId) return;
@@ -270,7 +300,11 @@ export default function CommunicationHub() {
               </p>
             </div>
           ) : (
-            <div className={styles.threadItems}>
+            <div
+              ref={threadItemsRef}
+              className={styles.threadItems}
+              onWheel={(event) => handlePrioritizedInnerScroll(event, 'threads')}
+            >
               {conversations.map((item) => (
                 <button
                   key={item.id}
@@ -320,13 +354,17 @@ export default function CommunicationHub() {
                 </div>
               </header>
 
-              <div className={styles.messageList}>
+              <div
+                ref={messageListRef}
+                className={styles.messageList}
+                onWheel={(event) => handlePrioritizedInnerScroll(event, 'messages')}
+              >
                 {loadingMessages ? (
                   <div className={styles.loading}>
                     <Loader size={16} className="animate-spin" />
                     <span>Loading messages...</span>
                   </div>
-                ) : messages.length === 0 ? (
+                ) : visibleMessages.length === 0 ? (
                   <div className={styles.placeholder}>
                     <MessageSquare size={20} />
                     <p>No messages yet. Send the first message.</p>
@@ -369,9 +407,12 @@ export default function CommunicationHub() {
                   rows={2}
                   maxLength={2000}
                 />
-                <button type="submit" disabled={sending || !draft.trim()}>
-                  <span>{sending ? 'Sending...' : 'Send'}</span>
-                  {sending ? <Loader size={16} className="animate-spin" /> : <Send size={15} />}
+                <button
+                  type="submit"
+                  disabled={sending || !draft.trim()}
+                  aria-label={sending ? 'Sending message' : 'Send message'}
+                >
+                  {sending ? <Loader size={14} className="animate-spin" /> : <Send size={14} />}
                 </button>
               </form>
             </>

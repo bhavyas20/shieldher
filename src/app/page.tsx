@@ -337,13 +337,15 @@ export default function Home() {
                     {/* Shield Her curve */}
                     <path
                       d="M0,200 C100,190 200,50 400,20"
+                      className="chart-shield-path"
+                      pathLength="1"
                       fill="none"
                       stroke="#a2cbef"
                       strokeWidth="6"
                       strokeLinecap="round"
                     />
                     {/* Data points */}
-                    <circle cx="400" cy="20" r="6" fill="white" />
+                    <circle cx="400" cy="20" r="6" fill="white" className="chart-shield-endpoint" />
                     <circle cx="0" cy="200" r="4" fill="white" opacity="0.5" />
                   </svg>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Upload,
   LineChart,
@@ -16,6 +16,7 @@ import {
   Lightbulb,
   Scale,
   Clock3,
+  CalendarClock,
 } from 'lucide-react';
 import { type AnalysisResult, type RiskLevel, type Upload as UploadType } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
@@ -65,6 +66,47 @@ type CaseNotification = {
   status: 'accepted' | 'pending';
   timestamp: string;
 };
+
+type ReminderDueNotification = {
+  id: string;
+  title: string;
+  detail: string;
+  venue: string;
+  event_time: string;
+  reminder_at: string;
+  client_name: string;
+  lawyer_name: string;
+  thread_id: string | null;
+};
+
+type BellNotificationItem = {
+  id: string;
+  type: 'case-accepted' | 'case-pending' | 'hearing-reminder';
+  title: string;
+  meta: string;
+  timestamp: string;
+  href: string;
+  actionLabel: string;
+};
+
+const REMINDER_CACHE_KEY = 'shieldher_due_reminders_cache';
+const REMINDER_EVENT = 'shieldher:due-reminders';
+
+function mergeReminders(
+  current: ReminderDueNotification[],
+  incoming: ReminderDueNotification[],
+  seen: Set<string>
+): ReminderDueNotification[] {
+  const fresh = incoming.filter((item) => {
+    if (!item?.id) return false;
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+
+  if (fresh.length === 0) return current;
+  return [...fresh, ...current].slice(0, 8);
+}
 
 function parseRole(value: unknown): UserRole | null {
   if (value === 'lawyer' || value === 'user') return value;
@@ -170,8 +212,12 @@ export default function DashboardPage() {
   const [uploads, setUploads] = useState<UploadType[]>([]);
   const [analyses, setAnalyses] = useState<AnalysisResult[]>([]);
   const [caseNotifications, setCaseNotifications] = useState<CaseNotification[]>([]);
+  const [reminderNotifications, setReminderNotifications] = useState<ReminderDueNotification[]>([]);
+  const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const notificationWrapRef = useRef<HTMLDivElement | null>(null);
+  const reminderSeenRef = useRef(new Set<string>());
 
   useEffect(() => {
     async function fetchData() {
@@ -292,6 +338,98 @@ export default function DashboardPage() {
     void fetchData();
   }, [router]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const cachedRaw = window.localStorage.getItem(REMINDER_CACHE_KEY);
+      if (cachedRaw) {
+        const parsed: unknown = JSON.parse(cachedRaw);
+        const cached = Array.isArray(parsed) ? (parsed as ReminderDueNotification[]) : [];
+        setReminderNotifications((current) => mergeReminders(current, cached, reminderSeenRef.current));
+      }
+    } catch {
+      // Ignore malformed cache payload.
+    }
+
+    const onReminderEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<ReminderDueNotification[]>;
+      const incoming = Array.isArray(customEvent.detail) ? customEvent.detail : [];
+      if (incoming.length === 0) return;
+      setReminderNotifications((current) => mergeReminders(current, incoming, reminderSeenRef.current));
+    };
+
+    window.addEventListener(REMINDER_EVENT, onReminderEvent as EventListener);
+    return () => {
+      window.removeEventListener(REMINDER_EVENT, onReminderEvent as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!notificationMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const node = notificationWrapRef.current;
+      if (!node) return;
+      if (node.contains(event.target as Node)) return;
+      setNotificationMenuOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setNotificationMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [notificationMenuOpen]);
+
+  const bellNotifications = useMemo<BellNotificationItem[]>(() => {
+    const caseItems: BellNotificationItem[] = caseNotifications.map((notification) => ({
+      id: `case-${notification.id}`,
+      type: notification.status === 'accepted' ? 'case-accepted' : 'case-pending',
+      title:
+        notification.status === 'accepted'
+          ? `Your case has been accepted by ${notification.lawyerName}`
+          : `Case request sent to ${notification.lawyerName}`,
+      meta: `${notification.caseFile} • Ref ${notification.reference} • ${shortDateTime(notification.timestamp)}`,
+      timestamp: notification.timestamp,
+      href: notification.threadId ? `/dashboard/communication?thread=${notification.threadId}` : '/dashboard/communication',
+      actionLabel: notification.status === 'accepted' ? 'View Case' : 'Open Chat',
+    }));
+
+    const reminderItems: BellNotificationItem[] = reminderNotifications.map((reminder) => {
+      const when = shortDateTime(reminder.event_time || reminder.reminder_at);
+      const metaBits = [
+        reminder.client_name ? `Client ${reminder.client_name}` : 'Hearing reminder',
+        when,
+        reminder.venue || '',
+      ].filter(Boolean);
+
+      return {
+        id: `reminder-${reminder.id}`,
+        type: 'hearing-reminder',
+        title: reminder.title?.trim() ? `Hearing reminder: ${reminder.title}` : 'Hearing reminder scheduled',
+        meta: metaBits.join(' • '),
+        timestamp: reminder.reminder_at || reminder.event_time || new Date().toISOString(),
+        href: reminder.thread_id ? `/dashboard/communication?thread=${reminder.thread_id}` : '/dashboard/communication',
+        actionLabel: reminder.thread_id ? 'Open Chat' : 'Open Inbox',
+      };
+    });
+
+    return [...reminderItems, ...caseItems]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 8);
+  }, [caseNotifications, reminderNotifications]);
+
+  const bellNotificationCount = bellNotifications.length;
+  const cappedNotificationCount = bellNotificationCount > 9 ? '9+' : String(bellNotificationCount);
+
   const totalUploads = uploads.length;
   const analyzedCount = uploads.filter((u) => u.status === 'completed' || u.status === 'flagged').length;
   const analyzedPercent = totalUploads > 0 ? (analyzedCount / totalUploads) * 100 : 0;
@@ -398,10 +536,86 @@ export default function DashboardPage() {
         </div>
 
         <div className={styles.navActions}>
-          <button className={styles.iconButton} aria-label="Notifications">
-            <Bell size={18} />
-            <span className={styles.notificationDot} />
-          </button>
+          <div className={styles.notificationWrap} ref={notificationWrapRef}>
+            <button
+              className={`${styles.iconButton} ${notificationMenuOpen ? styles.iconButtonActive : ''}`}
+              aria-label="Notifications"
+              aria-expanded={notificationMenuOpen}
+              aria-controls="dashboard-notification-menu"
+              onClick={() => setNotificationMenuOpen((current) => !current)}
+            >
+              <Bell size={18} />
+              {bellNotificationCount > 0 ? (
+                <span className={styles.notificationDot}>{cappedNotificationCount}</span>
+              ) : null}
+            </button>
+
+            {notificationMenuOpen ? (
+              <div className={styles.notificationMenu} id="dashboard-notification-menu" role="dialog" aria-label="Notifications">
+                <div className={styles.notificationMenuHeader}>
+                  <p className={styles.notificationMenuTitle}>Notifications</p>
+                  {bellNotificationCount > 0 ? (
+                    <span className={styles.notificationMenuCount}>{cappedNotificationCount}</span>
+                  ) : null}
+                </div>
+
+                {bellNotifications.length > 0 ? (
+                  <div className={styles.notificationMenuList}>
+                    {bellNotifications.map((notification) => (
+                      <article
+                        key={notification.id}
+                        className={`${styles.notificationMenuItem} ${
+                          notification.type === 'case-accepted'
+                            ? styles.notificationMenuItemAccepted
+                            : notification.type === 'case-pending'
+                              ? styles.notificationMenuItemPending
+                              : styles.notificationMenuItemReminder
+                        }`}
+                      >
+                        <span className={styles.notificationMenuIcon}>
+                          {notification.type === 'case-accepted' ? (
+                            <ShieldCheck size={14} />
+                          ) : notification.type === 'case-pending' ? (
+                            <Clock3 size={14} />
+                          ) : (
+                            <CalendarClock size={14} />
+                          )}
+                        </span>
+
+                        <div className={styles.notificationMenuBody}>
+                          <p className={styles.notificationMenuItemTitle}>{notification.title}</p>
+                          <p className={styles.notificationMenuItemMeta}>{notification.meta}</p>
+                        </div>
+
+                        <Link
+                          href={notification.href}
+                          className={styles.notificationMenuAction}
+                          onClick={() => setNotificationMenuOpen(false)}
+                        >
+                          {notification.actionLabel}
+                        </Link>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className={styles.notificationMenuEmpty}>
+                    No notifications yet. Lawyer responses and hearing reminders will appear here.
+                  </p>
+                )}
+
+                <div className={styles.notificationMenuFooter}>
+                  <Link
+                    href="/dashboard/communication"
+                    className={styles.notificationMenuFooterLink}
+                    onClick={() => setNotificationMenuOpen(false)}
+                  >
+                    Open Inbox
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
           <button className={styles.iconButton} aria-label="Help">
             <CircleHelp size={18} />
           </button>

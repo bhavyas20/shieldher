@@ -1078,6 +1078,41 @@ img {
   aspect-ratio: 4/3;
 }
 
+.chart-shield-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: chartShieldDraw 2.1s cubic-bezier(0.35, 0.14, 0.2, 1) 0.2s forwards;
+}
+
+.chart-shield-endpoint {
+  opacity: 0;
+  animation: chartShieldPointFade 0.4s ease 1.95s forwards;
+}
+
+@keyframes chartShieldDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chartShieldPointFade {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-shield-path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .chart-shield-endpoint {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 .chart-peak-badge {
   position: absolute;
   top: 0; right: 0;

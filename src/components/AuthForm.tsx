@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Shield, Mail, Lock, User, ArrowRight, Loader, Globe, Phone } from 'lucide-react';
+import { Shield, Mail, Lock, User, ArrowRight, Loader, Globe, Phone, Sparkles, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { EMAIL_REGEX, E164_REGEX, getPhoneAliasEmail, toE164Phone } from '@/lib/auth/phoneAuth';
 import styles from './AuthForm.module.css';
+import AuthThreeBackground from '@/components/auth/AuthThreeBackground';
 
 type AuthMethod = 'email' | 'phone';
 
@@ -59,6 +60,11 @@ export default function AuthForm({ initialMode = 'login' }: AuthFormProps) {
   const countryDialCode = selectedCountry.dialCode;
   const role = parseRole(searchParams.get('role'));
   const roleLabel = getRoleLabel(role);
+  const roleThemeClass = role === 'lawyer' ? styles.roleLawyer : role === 'user' ? styles.roleUser : '';
+  const featureHighlights =
+    role === 'lawyer'
+      ? ['Client-ready workspace', 'Court date reminders', 'Secure case channels']
+      : ['AI safety scanning', 'Private by design', 'Fast onboarding'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,10 +144,25 @@ export default function AuthForm({ initialMode = 'login' }: AuthFormProps) {
 
   return (
     <div className={styles.wrapper}>
-      <div className={styles.card}>
+      <div className={styles.sceneLayer}>
+        <AuthThreeBackground />
+      </div>
+      <div className={styles.bgOrbA} aria-hidden="true" />
+      <div className={styles.bgOrbB} aria-hidden="true" />
+      <div className={styles.bgGrid} aria-hidden="true" />
+      <div className={styles.bgBeam} aria-hidden="true" />
+      <div className={styles.bgParticles} aria-hidden="true" />
+      <div className={styles.bgNoise} aria-hidden="true" />
+
+      <div className={`${styles.card} ${roleThemeClass}`}>
+        <div className={styles.cardGlow} aria-hidden="true" />
+        <div className={styles.cardHalo} aria-hidden="true" />
+        <div className={styles.cardEdgePulse} aria-hidden="true" />
+        <div className={styles.cardShimmer} aria-hidden="true" />
         <div className={styles.header}>
-          <div className={styles.logoIcon}>
-            <Shield size={24} />
+          <div className={styles.topBadge}>
+            <Sparkles size={13} />
+            Secure Access
           </div>
           <h1 className={styles.title}>
             {mode === 'login'
@@ -167,11 +188,19 @@ export default function AuthForm({ initialMode = 'login' }: AuthFormProps) {
               </Link>
             </p>
           )}
+          <div className={styles.featureStrip}>
+            {featureHighlights.map((item) => (
+              <span key={item} className={styles.featureChip}>
+                <ShieldCheck size={12} />
+                {item}
+              </span>
+            ))}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
-            <label className="label">Email Address or Phone Number</label>
+            <label className={styles.label}>Email Address or Phone Number</label>
             <div className={styles.methodToggle}>
               <button
                 type="button"
@@ -199,35 +228,60 @@ export default function AuthForm({ initialMode = 'login' }: AuthFormProps) {
           </div>
 
           {mode === 'signup' && (
-            <div className={styles.field}>
-              <label className="label" htmlFor="fullName">
-                Full Name
-              </label>
-              <div className={styles.inputWrap}>
-                <User size={16} className={styles.inputIcon} />
-                <input
-                  id="fullName"
-                  type="text"
-                  className={`input ${styles.inputWithIcon}`}
-                  placeholder="Enter your full name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
+            <div className={styles.compactRow}>
+              <div className={`${styles.field} ${styles.compactField}`}>
+                <label className={styles.label} htmlFor="fullName">
+                  Full Name
+                </label>
+                <div className={styles.inputWrap}>
+                  <User size={16} className={styles.inputIcon} />
+                  <input
+                    id="fullName"
+                    type="text"
+                    className={`${styles.inputControl} ${styles.inputWithIcon}`}
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className={`${styles.field} ${styles.compactField}`}>
+                <label className={styles.label} htmlFor="country">
+                  Country
+                </label>
+                <div className={styles.inputWrap}>
+                  <Globe size={16} className={styles.inputIcon} />
+                  <select
+                    id="country"
+                    className={`${styles.inputControl} ${styles.inputWithIcon}`}
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    style={{ appearance: 'none', cursor: 'pointer' }}
+                    required
+                  >
+                    {COUNTRY_OPTIONS.map((option) => (
+                      <option key={option.name} value={option.name}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           )}
 
-          {(mode === 'signup' || authMethod === 'phone') && (
+          {mode !== 'signup' && authMethod === 'phone' && (
             <div className={styles.field}>
-              <label className="label" htmlFor="country">
+              <label className={styles.label} htmlFor="country">
                 Country
               </label>
               <div className={styles.inputWrap}>
                 <Globe size={16} className={styles.inputIcon} />
                 <select
                   id="country"
-                  className={`input ${styles.inputWithIcon}`}
+                  className={`${styles.inputControl} ${styles.inputWithIcon}`}
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   style={{ appearance: 'none', cursor: 'pointer' }}
@@ -244,7 +298,7 @@ export default function AuthForm({ initialMode = 'login' }: AuthFormProps) {
           )}
 
           <div className={styles.field}>
-            <label className="label" htmlFor="identifier">
+            <label className={styles.label} htmlFor="identifier">
               {authMethod === 'email' ? 'Email Address' : 'Phone Number'}
             </label>
             <div className={`${styles.inputWrap} ${authMethod === 'phone' ? styles.phoneInputWrap : ''}`}>
@@ -258,7 +312,7 @@ export default function AuthForm({ initialMode = 'login' }: AuthFormProps) {
                 id="identifier"
                 type={authMethod === 'email' ? 'email' : 'tel'}
                 inputMode={authMethod === 'email' ? 'email' : 'numeric'}
-                className={`input ${styles.inputWithIcon} ${
+                className={`${styles.inputControl} ${styles.inputWithIcon} ${
                   authMethod === 'phone' ? styles.inputWithDialCode : ''
                 }`}
                 placeholder={authMethod === 'email' ? 'you@example.com' : 'Enter phone number'}
@@ -274,7 +328,7 @@ export default function AuthForm({ initialMode = 'login' }: AuthFormProps) {
           </div>
 
           <div className={styles.field}>
-            <label className="label" htmlFor="password">
+            <label className={styles.label} htmlFor="password">
               Password
             </label>
             <div className={styles.inputWrap}>
@@ -282,7 +336,7 @@ export default function AuthForm({ initialMode = 'login' }: AuthFormProps) {
               <input
                 id="password"
                 type="password"
-                className={`input ${styles.inputWithIcon}`}
+                className={`${styles.inputControl} ${styles.inputWithIcon}`}
                 placeholder="********"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -295,14 +349,9 @@ export default function AuthForm({ initialMode = 'login' }: AuthFormProps) {
           {error && <div className={styles.error}>{error}</div>}
           {message && <div className={styles.success}>{message}</div>}
 
-          <button
-            type="submit"
-            className="btn btn-primary btn-lg"
-            style={{ width: '100%' }}
-            disabled={loading}
-          >
+          <button type="submit" className={styles.submitBtn} disabled={loading}>
             {loading ? (
-              <Loader size={18} className="animate-spin" />
+              <Loader size={18} className={styles.spinner} />
             ) : (
               <>
                 {mode === 'login' ? 'Sign In' : 'Create Account'}

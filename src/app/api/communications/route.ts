@@ -3,6 +3,7 @@ import {
   createAdminClient,
   getAuthenticatedUser,
 } from '@/lib/communication/server';
+import { isSystemCommunicationMessage } from '@/lib/communication/messageFilters';
 import type { ConversationRow, MessageRow } from '@/lib/communication/types';
 
 type ConversationListItem = {
@@ -57,7 +58,7 @@ export async function GET() {
 
     const { data: unreadData, error: unreadError } = await supabaseAdmin
       .from('communication_messages')
-      .select('thread_id')
+      .select('thread_id, body')
       .in('thread_id', threadIds)
       .neq('sender_id', requester.id)
       .is('read_at', null);
@@ -67,7 +68,9 @@ export async function GET() {
     }
 
     for (const row of unreadData ?? []) {
-      const threadId = String((row as { thread_id?: unknown }).thread_id ?? '');
+      const message = row as { thread_id?: unknown; body?: unknown };
+      if (isSystemCommunicationMessage(message.body)) continue;
+      const threadId = String(message.thread_id ?? '');
       if (!threadId) continue;
       unreadByThread.set(threadId, (unreadByThread.get(threadId) ?? 0) + 1);
     }
@@ -79,12 +82,14 @@ export async function GET() {
           .select('id, thread_id, sender_id, sender_role, body, read_at, created_at')
           .eq('thread_id', threadId)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(25);
 
         if (error) throw error;
-        if (data) {
-          latestMessageByThread.set(threadId, data as MessageRow);
+
+        const rows = (data as MessageRow[] | null) ?? [];
+        const latestVisible = rows.find((message) => !isSystemCommunicationMessage(message.body));
+        if (latestVisible) {
+          latestMessageByThread.set(threadId, latestVisible);
         }
       })
     );

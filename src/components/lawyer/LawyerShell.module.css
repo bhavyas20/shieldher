@@ -4,8 +4,8 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: var(--bg-primary);
-  color: var(--text-secondary);
+  background: #fdf9f0;
+  color: #646455;
 }
 
 .heroSection {
@@ -13,21 +13,17 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 22px;
+  gap: 16px;
   flex-wrap: wrap;
-  padding: 30px 30px 26px;
-  border-radius: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.48);
-  background: linear-gradient(
-    140deg,
-    rgba(255, 255, 255, 0.78),
-    rgba(255, 255, 255, 0.46)
-  );
+  padding: 22px 22px 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(188, 186, 167, 0.34);
+  background: linear-gradient(152deg, rgba(255, 255, 255, 0.56), rgba(247, 243, 230, 0.74));
   box-shadow:
-    0 24px 64px rgba(10, 37, 64, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.58);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+    0 30px 46px -34px rgba(57, 56, 43, 0.58),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
   overflow: hidden;
 }
 
@@ -36,11 +32,7 @@
   position: absolute;
   inset: -40% -10% auto -10%;
   height: 84%;
-  background: radial-gradient(
-    ellipse at top,
-    rgba(99, 91, 255, 0.22),
-    transparent 70%
-  );
+  background: radial-gradient(ellipse at top, rgba(70, 101, 80, 0.22), transparent 70%);
   pointer-events: none;
 }
 
@@ -49,12 +41,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(125deg, rgba(255, 255, 255, 0.38), transparent 42%),
-    radial-gradient(
-      380px 220px at 86% 24%,
-      rgba(255, 171, 145, 0.2),
-      transparent 70%
-    );
+    linear-gradient(125deg, rgba(255, 255, 255, 0.42), transparent 46%),
+    radial-gradient(380px 220px at 86% 24%, rgba(70, 101, 80, 0.11), transparent 70%);
   pointer-events: none;
   opacity: 0.9;
 }
@@ -64,38 +52,37 @@
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .heroLabel {
   display: inline-flex;
   width: fit-content;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--accent-primary);
-  padding: 6px 12px;
+  color: #466550;
+  padding: 5px 10px;
   border-radius: var(--radius-full);
-  border: 1px solid rgba(99, 91, 255, 0.28);
-  background: rgba(99, 91, 255, 0.1);
+  border: 1px solid rgba(70, 101, 80, 0.24);
+  background: rgba(70, 101, 80, 0.1);
 }
 
 .heroTitle {
-  font-family: var(--font-headline);
-  font-size: clamp(30px, 4.3vw, 46px);
-  font-weight: 800;
-  letter-spacing: -0.035em;
+  font-family: var(--font-serif);
+  font-size: clamp(24px, 3.3vw, 36px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
   line-height: 1.02;
-  color: var(--text-primary);
-  text-shadow: 0 14px 36px rgba(10, 37, 64, 0.14);
+  color: #1c1c16;
 }
 
 .heroSubtitle {
-  font-size: 18px;
-  color: var(--text-secondary);
+  font-size: 14px;
+  color: rgba(100, 100, 85, 0.92);
   max-width: 620px;
-  line-height: 1.65;
+  line-height: 1.6;
 }
 
 .heroChip {
@@ -103,64 +90,58 @@
   z-index: 2;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 10px 14px;
+  gap: 7px;
+  padding: 8px 12px;
   border-radius: var(--radius-full);
-  color: #4f46e5;
-  font-weight: 800;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(99, 91, 255, 0.28);
+  color: #466550;
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(70, 101, 80, 0.24);
 }
 
 [data-theme='dark'] .heroSection {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: linear-gradient(
-    145deg,
-    rgba(17, 24, 39, 0.72),
-    rgba(17, 24, 39, 0.52)
-  );
+  border-color: rgba(141, 151, 136, 0.32);
+  background: linear-gradient(145deg, rgba(30, 38, 31, 0.86), rgba(24, 31, 25, 0.76));
   box-shadow:
-    0 26px 64px rgba(2, 6, 23, 0.52),
+    0 26px 64px rgba(2, 6, 23, 0.42),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 [data-theme='dark'] .heroSection::before {
-  background: radial-gradient(
-    ellipse at top,
-    rgba(129, 140, 248, 0.28),
-    transparent 72%
-  );
+  background: radial-gradient(ellipse at top, rgba(126, 170, 144, 0.24), transparent 72%);
 }
 
 [data-theme='dark'] .heroSection::after {
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.08), transparent 40%);
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.08), transparent 40%),
+    radial-gradient(380px 220px at 86% 24%, rgba(126, 170, 144, 0.18), transparent 70%);
 }
 
 [data-theme='dark'] .heroLabel {
-  color: #c7d2fe;
-  border-color: rgba(129, 140, 248, 0.45);
-  background: rgba(129, 140, 248, 0.16);
+  color: #b8d1be;
+  border-color: rgba(126, 170, 144, 0.4);
+  background: rgba(126, 170, 144, 0.16);
 }
 
 [data-theme='dark'] .heroTitle {
-  color: #f8fafc;
-  text-shadow: none;
+  color: #e8efe1;
 }
 
 [data-theme='dark'] .heroSubtitle {
-  color: #94a3b8;
+  color: #b9c2af;
 }
 
 [data-theme='dark'] .heroChip {
-  color: #c7d2fe;
-  border-color: rgba(129, 140, 248, 0.45);
-  background: rgba(129, 140, 248, 0.18);
+  color: #b8d1be;
+  border-color: rgba(126, 170, 144, 0.4);
+  background: rgba(126, 170, 144, 0.16);
 }
 
 @media (max-width: 768px) {
   .heroSection {
-    padding: 22px 18px;
-    border-radius: 20px;
-    gap: 14px;
+    padding: 18px 14px;
+    border-radius: 16px;
+    gap: 10px;
   }
 }

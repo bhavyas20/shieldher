@@ -1,0 +1,123 @@
+.toastStack {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 140;
+  width: min(360px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toastCard {
+  border-radius: 12px;
+  border: 1px solid rgba(70, 101, 80, 0.3);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(244, 248, 243, 0.96));
+  box-shadow: 0 20px 34px -24px rgba(57, 56, 43, 0.62);
+  padding: 10px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toastHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.toastBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(70, 101, 80, 0.28);
+  background: rgba(70, 101, 80, 0.1);
+  color: #466550;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.toastDismiss {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(188, 186, 167, 0.44);
+  background: rgba(255, 255, 255, 0.86);
+  color: rgba(28, 28, 22, 0.66);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toastTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: #1c1c16;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.toastMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(28, 28, 22, 0.74);
+  font-weight: 700;
+}
+
+.toastSub,
+.toastDetail {
+  font-size: 12px;
+  color: rgba(28, 28, 22, 0.72);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.toastDetail {
+  color: rgba(28, 28, 22, 0.62);
+}
+
+[data-theme='dark'] .toastCard {
+  border-color: rgba(126, 170, 144, 0.36);
+  background: linear-gradient(145deg, rgba(28, 36, 30, 0.96), rgba(24, 31, 25, 0.95));
+  box-shadow: 0 22px 38px -26px rgba(0, 0, 0, 0.82);
+}
+
+[data-theme='dark'] .toastBadge {
+  color: #b8d1be;
+  border-color: rgba(126, 170, 144, 0.34);
+  background: rgba(126, 170, 144, 0.2);
+}
+
+[data-theme='dark'] .toastDismiss {
+  color: rgba(230, 232, 223, 0.78);
+  border-color: rgba(143, 150, 140, 0.44);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .toastTitle {
+  color: #edf2e9;
+}
+
+[data-theme='dark'] .toastMeta,
+[data-theme='dark'] .toastSub,
+[data-theme='dark'] .toastDetail {
+  color: rgba(226, 230, 219, 0.78);
+}
+
+@media (max-width: 768px) {
+  .toastStack {
+    top: 10px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+  }
+}

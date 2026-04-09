@@ -99,6 +99,10 @@
   gap: 0.65rem;
 }
 
+.notificationWrap {
+  position: relative;
+}
+
 .iconButton {
   position: relative;
   width: 38px;
@@ -119,15 +123,191 @@
   background: rgba(255, 255, 255, 0.92);
 }
 
+.iconButtonActive {
+  color: var(--dash-green);
+  border-color: rgba(70, 101, 80, 0.42);
+  background: rgba(255, 255, 255, 0.96);
+}
+
 .notificationDot {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  padding: 0 5px;
   background: var(--dash-danger);
-  box-shadow: 0 0 0 2px #fdf9f0;
+  border: 2px solid #fdf9f0;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notificationMenu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(420px, calc(100vw - 2rem));
+  border-radius: 14px;
+  border: 1px solid rgba(188, 186, 167, 0.42);
+  background: linear-gradient(148deg, rgba(255, 255, 255, 0.95), rgba(248, 244, 234, 0.97));
+  box-shadow:
+    0 24px 36px -24px rgba(57, 56, 43, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  padding: 0.78rem;
+  z-index: 80;
+}
+
+.notificationMenuHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.66rem;
+}
+
+.notificationMenuTitle {
+  font-family: var(--font-serif);
+  font-size: 1.16rem;
+  font-weight: 500;
+  color: var(--dash-ink);
+}
+
+.notificationMenuCount {
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  padding: 0 0.4rem;
+  border: 1px solid rgba(70, 101, 80, 0.26);
+  background: rgba(70, 101, 80, 0.1);
+  color: var(--dash-green);
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notificationMenuList {
+  max-height: min(440px, 65vh);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.46rem;
+  padding-right: 0.1rem;
+}
+
+.notificationMenuItem {
+  border-radius: 11px;
+  border: 1px solid rgba(188, 186, 167, 0.32);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(249, 245, 235, 0.82));
+  display: flex;
+  align-items: center;
+  gap: 0.54rem;
+  padding: 0.58rem 0.62rem;
+}
+
+.notificationMenuItemAccepted {
+  box-shadow: 0 12px 22px -20px rgba(63, 122, 88, 0.64);
+}
+
+.notificationMenuItemPending {
+  box-shadow: 0 12px 22px -20px rgba(146, 113, 59, 0.58);
+}
+
+.notificationMenuItemReminder {
+  box-shadow: 0 12px 22px -20px rgba(71, 92, 150, 0.45);
+}
+
+.notificationMenuIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: rgba(70, 101, 80, 0.12);
+  color: var(--dash-green);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notificationMenuBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.notificationMenuItemTitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--dash-ink);
+  line-height: 1.28;
+}
+
+.notificationMenuItemMeta {
+  margin-top: 0.2rem;
+  font-size: 0.66rem;
+  color: rgba(100, 100, 85, 0.92);
+  line-height: 1.32;
+}
+
+.notificationMenuAction {
+  height: 28px;
+  padding: 0 0.58rem;
+  border-radius: 999px;
+  border: 1px solid rgba(70, 101, 80, 0.22);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--dash-green);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.notificationMenuAction:hover {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.notificationMenuEmpty {
+  border-radius: 11px;
+  border: 1px dashed rgba(188, 186, 167, 0.52);
+  padding: 0.88rem;
+  background: rgba(255, 255, 255, 0.7);
+  color: rgba(100, 100, 85, 0.9);
+  font-size: 0.78rem;
+  line-height: 1.42;
+}
+
+.notificationMenuFooter {
+  margin-top: 0.66rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(188, 186, 167, 0.32);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.notificationMenuFooterLink {
+  height: 30px;
+  padding: 0 0.72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(70, 101, 80, 0.28);
+  background: rgba(70, 101, 80, 0.08);
+  color: var(--dash-green);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
 }
 
 .profileChip {
@@ -1151,6 +1331,12 @@
     justify-content: space-between;
   }
 
+  .notificationMenu {
+    left: 0;
+    right: auto;
+    width: min(420px, calc(100vw - 1.6rem));
+  }
+
   .headingRow {
     flex-direction: column;
     align-items: flex-start;
@@ -1195,6 +1381,10 @@
     padding-left: 0;
     border-left: none;
     margin-left: 0.2rem;
+  }
+
+  .notificationMenu {
+    width: min(360px, calc(100vw - 1.2rem));
   }
 
   .tableHeader {

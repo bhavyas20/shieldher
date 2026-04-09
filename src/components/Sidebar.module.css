@@ -1,7 +1,7 @@
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
-  width: 260px;
+  width: 236px;
   z-index: 60;
   display: flex;
   flex-direction: column;
@@ -44,8 +44,8 @@
 .top {
   position: relative;
   z-index: 2;
-  height: 80px;
-  padding: 18px 14px;
+  height: 74px;
+  padding: 14px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -61,8 +61,8 @@
 }
 
 .logoIcon {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   border-radius: 10px;
   display: flex;
@@ -79,7 +79,7 @@
 
 .logoText {
   font-family: var(--font-serif);
-  font-size: 1.65rem;
+  font-size: 1.45rem;
   line-height: 1;
   font-weight: 500;
   color: #1c1c16;
@@ -110,7 +110,7 @@
   position: relative;
   z-index: 2;
   flex: 1;
-  padding: 14px 10px;
+  padding: 12px 8px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -121,12 +121,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 42px;
-  padding: 0 12px;
-  border-radius: 12px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 11px;
   color: rgba(28, 28, 22, 0.62);
   border: 1px solid transparent;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 600;
   transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
@@ -201,7 +201,7 @@
 .bottom {
   position: relative;
   z-index: 2;
-  padding: 12px 10px 14px;
+  padding: 10px 8px 12px;
   border-top: 1px solid rgba(188, 186, 167, 0.26);
   display: flex;
   flex-direction: column;
@@ -210,12 +210,12 @@
 
 .themeToggle,
 .profileBtn {
-  min-height: 40px;
-  border-radius: 12px;
+  min-height: 38px;
+  border-radius: 11px;
   border: 1px solid transparent;
   color: rgba(28, 28, 22, 0.62);
-  padding: 0 12px;
-  font-size: 0.82rem;
+  padding: 0 10px;
+  font-size: 0.78rem;
   font-weight: 600;
   display: flex;
   align-items: center;

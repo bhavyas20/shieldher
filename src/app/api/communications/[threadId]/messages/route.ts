@@ -4,6 +4,7 @@ import {
   getAuthenticatedUser,
   toText,
 } from '@/lib/communication/server';
+import { isSystemCommunicationMessage } from '@/lib/communication/messageFilters';
 import type { ConversationRow, MessageRow } from '@/lib/communication/types';
 
 async function getAuthorizedThread(threadId: string, requesterId: string, requesterRole: 'user' | 'lawyer') {
@@ -68,6 +69,9 @@ export async function GET(request: Request) {
       throw messagesError;
     }
 
+    const allMessages = (messagesData as MessageRow[] | null) ?? [];
+    const visibleMessages = allMessages.filter((message) => !isSystemCommunicationMessage(message.body));
+
     return NextResponse.json({
       thread: {
         id: thread.id,
@@ -76,7 +80,7 @@ export async function GET(request: Request) {
         user_name: thread.user_name,
         lawyer_name: thread.lawyer_name,
       },
-      messages: (messagesData as MessageRow[] | null) ?? [],
+      messages: visibleMessages,
     });
   } catch (error: unknown) {
     console.error('Conversation messages fetch error:', error);

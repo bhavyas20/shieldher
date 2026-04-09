@@ -3,6 +3,7 @@ import {
   createAdminClient,
   getAuthenticatedUser,
 } from '@/lib/communication/server';
+import { isSystemCommunicationMessage } from '@/lib/communication/messageFilters';
 
 export async function GET() {
   try {
@@ -28,9 +29,9 @@ export async function GET() {
       return NextResponse.json({ unreadCount: 0 });
     }
 
-    const { count, error: unreadError } = await supabaseAdmin
+    const { data: unreadRows, error: unreadError } = await supabaseAdmin
       .from('communication_messages')
-      .select('id', { head: true, count: 'exact' })
+      .select('id, body')
       .in('thread_id', threadIds)
       .neq('sender_id', requester.id)
       .is('read_at', null);
@@ -39,7 +40,12 @@ export async function GET() {
       throw unreadError;
     }
 
-    return NextResponse.json({ unreadCount: count ?? 0 });
+    const unreadCount = (unreadRows ?? []).reduce((total, row) => {
+      const message = row as { body?: unknown };
+      return isSystemCommunicationMessage(message.body) ? total : total + 1;
+    }, 0);
+
+    return NextResponse.json({ unreadCount });
   } catch (error: unknown) {
     console.error('Unread communication count error:', error);
     return NextResponse.json({ error: 'Failed to load unread count' }, { status: 500 });

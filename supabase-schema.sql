@@ -304,3 +304,49 @@ CREATE POLICY "Participants can mark messages read"
       AND (t.user_id = auth.uid() OR t.lawyer_id = auth.uid())
     )
   );
+
+-- ====================================================================
+-- 8. Hearing Reminder Events (Calendar + Timed Notifications)
+-- ====================================================================
+CREATE TABLE IF NOT EXISTS public.hearing_reminders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  lawyer_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  thread_id UUID REFERENCES public.communication_threads(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  detail TEXT DEFAULT '' NOT NULL,
+  venue TEXT DEFAULT '' NOT NULL,
+  event_time TIMESTAMPTZ NOT NULL,
+  reminder_at TIMESTAMPTZ NOT NULL,
+  client_name TEXT DEFAULT '' NOT NULL,
+  lawyer_name TEXT DEFAULT '' NOT NULL,
+  notified_user_at TIMESTAMPTZ,
+  notified_lawyer_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS hearing_reminders_lawyer_time_idx
+  ON public.hearing_reminders (lawyer_id, event_time ASC);
+CREATE INDEX IF NOT EXISTS hearing_reminders_user_time_idx
+  ON public.hearing_reminders (user_id, event_time ASC);
+CREATE INDEX IF NOT EXISTS hearing_reminders_due_lawyer_idx
+  ON public.hearing_reminders (lawyer_id, reminder_at ASC, notified_lawyer_at);
+CREATE INDEX IF NOT EXISTS hearing_reminders_due_user_idx
+  ON public.hearing_reminders (user_id, reminder_at ASC, notified_user_at);
+
+ALTER TABLE public.hearing_reminders ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Participants can view hearing reminders" ON public.hearing_reminders;
+CREATE POLICY "Participants can view hearing reminders"
+  ON public.hearing_reminders FOR SELECT
+  USING (auth.uid() = lawyer_id OR auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Lawyers can create hearing reminders" ON public.hearing_reminders;
+CREATE POLICY "Lawyers can create hearing reminders"
+  ON public.hearing_reminders FOR INSERT
+  WITH CHECK (auth.uid() = lawyer_id);
+
+DROP POLICY IF EXISTS "Participants can update hearing reminders" ON public.hearing_reminders;
+CREATE POLICY "Participants can update hearing reminders"
+  ON public.hearing_reminders FOR UPDATE
+  USING (auth.uid() = lawyer_id OR auth.uid() = user_id);

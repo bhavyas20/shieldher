@@ -1,87 +1,440 @@
 .wrapper {
+  position: relative;
+  overflow: hidden;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: var(--bg-primary);
+  isolation: isolate;
+  background:
+    radial-gradient(78rem 42rem at 12% 8%, rgba(126, 170, 144, 0.2), transparent 58%),
+    radial-gradient(62rem 34rem at 88% 18%, rgba(229, 226, 217, 0.42), transparent 62%),
+    linear-gradient(180deg, var(--surface) 0%, var(--surface-container-low) 100%);
+}
+
+.sceneLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.74;
+}
+
+.glowOrbA,
+.glowOrbB {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(52px);
+  z-index: 1;
+}
+
+.glowOrbA {
+  width: 34vw;
+  min-width: 250px;
+  height: 34vw;
+  min-height: 250px;
+  left: -9vw;
+  top: 10vh;
+  background: radial-gradient(circle, rgba(126, 170, 144, 0.26), rgba(126, 170, 144, 0));
+  animation: floatOrb 10s ease-in-out infinite;
+}
+
+.glowOrbB {
+  width: 36vw;
+  min-width: 280px;
+  height: 36vw;
+  min-height: 280px;
+  right: -13vw;
+  bottom: -8vh;
+  background: radial-gradient(circle, rgba(203, 211, 189, 0.3), rgba(203, 211, 189, 0));
+  animation: floatOrb 12s ease-in-out infinite reverse;
+}
+
+.floatingRingOne,
+.floatingRingTwo {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1.5px solid rgba(126, 170, 144, 0.34);
+  z-index: 1;
+  box-shadow: inset 0 0 32px rgba(126, 170, 144, 0.14);
+}
+
+.floatingRingOne {
+  width: min(48vw, 520px);
+  height: min(48vw, 520px);
+  right: -12vw;
+  bottom: -26vh;
+  opacity: 0.5;
+  background: conic-gradient(
+    from 0deg,
+    rgba(126, 170, 144, 0.18),
+    rgba(255, 255, 255, 0) 40%,
+    rgba(126, 170, 144, 0.2) 72%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: ringDrift 14s linear infinite;
+}
+
+.floatingRingTwo {
+  width: min(36vw, 390px);
+  height: min(36vw, 390px);
+  left: -11vw;
+  top: -18vh;
+  opacity: 0.34;
+  background: conic-gradient(
+    from 180deg,
+    rgba(203, 211, 189, 0.16),
+    rgba(255, 255, 255, 0) 44%,
+    rgba(126, 170, 144, 0.14) 80%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: ringDrift 18s linear infinite reverse;
+}
+
+.ambientGrid {
+  position: absolute;
+  inset: -14% -12%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.12;
+  background-image:
+    linear-gradient(rgba(126, 170, 144, 0.28) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(126, 170, 144, 0.28) 1px, transparent 1px);
+  background-size: 62px 62px;
+  transform: perspective(720px) rotateX(54deg);
+  transform-origin: center top;
+  animation: ambientGridDrift 24s linear infinite;
+}
+
+.lightSweep {
+  position: absolute;
+  inset: -18% -8%;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    108deg,
+    transparent 34%,
+    rgba(255, 255, 255, 0.42) 50%,
+    transparent 66%
+  );
+  transform: translateX(-18%);
+  animation: ambientSweep 6.8s ease-in-out infinite;
+}
+
+.particleLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle at 12% 24%, rgba(255, 255, 255, 0.72) 0 1px, transparent 2px),
+    radial-gradient(circle at 22% 68%, rgba(255, 255, 255, 0.52) 0 1px, transparent 2px),
+    radial-gradient(circle at 46% 22%, rgba(255, 255, 255, 0.62) 0 1px, transparent 2px),
+    radial-gradient(circle at 66% 56%, rgba(255, 255, 255, 0.52) 0 1px, transparent 2px),
+    radial-gradient(circle at 84% 34%, rgba(255, 255, 255, 0.7) 0 1px, transparent 2px);
+  animation: particleDrift 9.2s ease-in-out infinite;
+}
+
+.noiseLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.11;
+  background-image: url("data:image/svg+xml,%3Csvg width='140' height='140' viewBox='0 0 140 140' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.7'/%3E%3C/svg%3E");
 }
 
 .card {
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
   width: 100%;
-  max-width: 520px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  padding: 36px;
-  box-shadow: var(--shadow-lg);
-  animation: fade-in-up 0.45s ease-out;
+  max-width: 560px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 34px;
+  padding: 40px 38px;
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.3)),
+    linear-gradient(175deg, rgba(245, 242, 233, 0.72), rgba(233, 229, 217, 0.5));
+  box-shadow:
+    0 44px 70px -44px rgba(26, 26, 26, 0.7),
+    0 16px 34px -28px rgba(77, 74, 62, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(28px) saturate(135%);
+  -webkit-backdrop-filter: blur(28px) saturate(135%);
+  animation: fadeInUp 0.5s cubic-bezier(0.22, 0.8, 0.32, 1);
+}
+
+.cardAmbient,
+.cardAurora,
+.cardEdgePulse,
+.cardSparkle,
+.cardScanline,
+.cardSheen {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cardAmbient {
+  inset: -35% -10% auto -10%;
+  height: 65%;
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0));
+  filter: blur(8px);
+}
+
+.cardAurora {
+  inset: auto -24% -44% -24%;
+  height: 58%;
+  background: radial-gradient(circle, rgba(126, 170, 144, 0.4), rgba(126, 170, 144, 0));
+  filter: blur(22px);
+  opacity: 0.44;
+  animation: auroraBreathe 6.4s ease-in-out infinite;
+}
+
+.cardEdgePulse {
+  inset: 0;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  opacity: 0.3;
+  animation: edgePulse 3.6s ease-in-out infinite;
+}
+
+.cardSparkle {
+  inset: -20% -4% 0 -4%;
+  opacity: 0.56;
+  background-image:
+    radial-gradient(circle at 18% 26%, rgba(255, 255, 255, 0.9) 0 1px, transparent 2px),
+    radial-gradient(circle at 74% 18%, rgba(255, 255, 255, 0.7) 0 1px, transparent 2px),
+    radial-gradient(circle at 60% 38%, rgba(255, 255, 255, 0.68) 0 1px, transparent 2px),
+    radial-gradient(circle at 28% 54%, rgba(255, 255, 255, 0.7) 0 1px, transparent 2px);
+  animation: sparkleShift 5.2s ease-in-out infinite;
+}
+
+.cardScanline {
+  inset: 0;
+  opacity: 0.2;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.72) 49%,
+    transparent 100%
+  );
+  transform: translateY(-120%);
+  animation: scanlineDrop 4.8s ease-in-out infinite;
+}
+
+.cardSheen {
+  inset: 0;
+  opacity: 0;
+  background: linear-gradient(
+    114deg,
+    transparent 34%,
+    rgba(255, 255, 255, 0.42) 50%,
+    transparent 66%
+  );
+  transform: translateX(-120%);
+  animation: cardSheenMove 6.1s ease-in-out infinite;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(42rem 19rem at -2% -18%, rgba(255, 255, 255, 0.48), transparent 56%),
+    radial-gradient(21rem 12rem at 120% 110%, rgba(224, 232, 216, 0.34), transparent 60%);
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 32px;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.26);
 }
 
 .header {
+  position: relative;
+  z-index: 4;
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 30px;
+}
+
+.topBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.46);
+  color: rgba(26, 26, 26, 0.7);
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  animation: badgePulse 2.8s ease-in-out infinite;
 }
 
 .logoIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-lg);
-  background: var(--accent-primary);
-  color: white;
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  background:
+    linear-gradient(148deg, rgba(70, 101, 80, 0.9), rgba(59, 89, 68, 0.84)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0));
+  color: #f6fbf7;
   margin-bottom: 16px;
+  box-shadow:
+    0 18px 26px -20px rgba(35, 62, 45, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: logoPulse 3.2s ease-in-out infinite;
 }
 
 .title {
-  font-family: var(--font-display);
+  font-family: var(--font-headline);
   font-size: 28px;
   line-height: 1.2;
   font-weight: 800;
-  color: var(--text-primary);
-  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+  margin-bottom: 11px;
 }
 
 .subtitle {
-  color: var(--text-secondary);
+  color: rgba(74, 74, 74, 0.84);
   font-size: 15px;
+  line-height: 1.52;
+}
+
+.featureStrip {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.featureChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  background: rgba(255, 255, 255, 0.42);
+  color: rgba(26, 26, 26, 0.72);
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  animation: chipDrift 6.8s ease-in-out infinite;
+}
+
+.featureChip:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+.featureChip:nth-child(3) {
+  animation-delay: 0.8s;
 }
 
 .options {
+  position: relative;
+  z-index: 4;
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .optionCard {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 14px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  background: var(--bg-secondary);
-  padding: 16px;
-  transition: transform var(--transition-base), box-shadow var(--transition-base),
-    border-color var(--transition-base);
+  gap: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 19px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.52), rgba(244, 240, 230, 0.36)),
+    linear-gradient(180deg, rgba(236, 232, 221, 0.28), rgba(224, 219, 205, 0.2));
+  padding: 17px;
+  box-shadow:
+    0 18px 28px -30px rgba(44, 42, 35, 0.76),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px) saturate(132%);
+  -webkit-backdrop-filter: blur(20px) saturate(132%);
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease;
+  animation: optionRise 0.52s cubic-bezier(0.22, 0.8, 0.32, 1) both;
+}
+
+.optionCard:nth-child(1) {
+  animation-delay: 0.08s;
+}
+
+.optionCard:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.optionCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(118deg, rgba(255, 255, 255, 0.42), transparent 44%);
+  pointer-events: none;
+  opacity: 0.74;
 }
 
 .optionCard:hover {
-  border-color: var(--accent-primary);
+  border-color: rgba(70, 101, 80, 0.34);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow:
+    0 24px 34px -28px rgba(44, 56, 46, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.optionCard:focus-visible {
+  outline: none;
+  border-color: rgba(70, 101, 80, 0.46);
+  box-shadow:
+    0 0 0 3px rgba(70, 101, 80, 0.15),
+    0 24px 34px -28px rgba(44, 56, 46, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .optionIcon {
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-md);
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent-primary);
-  background: var(--accent-primary-dim);
+  color: #466550;
+  background:
+    linear-gradient(160deg, rgba(236, 240, 232, 0.82), rgba(218, 228, 216, 0.6));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 10px 18px -14px rgba(70, 101, 80, 0.66);
   flex-shrink: 0;
+  animation: iconBreath 2.8s ease-in-out infinite;
 }
 
 .optionText {
@@ -93,36 +446,302 @@
   font-size: 17px;
   line-height: 1.25;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--on-surface);
 }
 
 .optionText p {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: rgba(74, 74, 74, 0.8);
 }
 
 .optionArrow {
-  color: var(--text-muted);
+  color: rgba(74, 74, 74, 0.64);
   flex-shrink: 0;
+  transition: transform 220ms ease, color 220ms ease;
 }
 
-@keyframes fade-in-up {
+.optionCard:hover .optionArrow {
+  transform: translateX(2px);
+  color: #466550;
+}
+
+@keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(18px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
+@keyframes optionRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes iconBreath {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-1px) scale(1.04);
+  }
+}
+
+@keyframes floatOrb {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(0, -10px, 0) scale(1.04);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes ringDrift {
+  from {
+    transform: rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(180deg) scale(1.05);
+  }
+
+  to {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes ambientSweep {
+  0%,
+  100% {
+    transform: translateX(-18%);
+    opacity: 0.48;
+  }
+
+  50% {
+    transform: translateX(18%);
+    opacity: 0.86;
+  }
+}
+
+@keyframes ambientGridDrift {
+  from {
+    transform: perspective(720px) rotateX(54deg) translateY(0);
+  }
+
+  to {
+    transform: perspective(720px) rotateX(54deg) translateY(62px);
+  }
+}
+
+@keyframes particleDrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(-1.6%, 2.2%, 0);
+  }
+}
+
+@keyframes auroraBreathe {
+  0%,
+  100% {
+    opacity: 0.32;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.56;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes edgePulse {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+
+  50% {
+    opacity: 0.46;
+  }
+}
+
+@keyframes sparkleShift {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+
+  50% {
+    transform: translateY(8px);
+    opacity: 0.72;
+  }
+}
+
+@keyframes cardSheenMove {
+  0%,
+  100% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 0.64;
+  }
+
+  56% {
+    transform: translateX(130%);
+    opacity: 0.08;
+  }
+}
+
+@keyframes scanlineDrop {
+  0% {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 0.14;
+  }
+
+  60% {
+    transform: translateY(120%);
+    opacity: 0.1;
+  }
+
+  100% {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+}
+
+@keyframes logoPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes badgePulse {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes chipDrift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .glowOrbA,
+  .glowOrbB,
+  .floatingRingOne,
+  .floatingRingTwo,
+  .ambientGrid,
+  .lightSweep,
+  .particleLayer,
+  .cardAurora,
+  .cardEdgePulse,
+  .cardSparkle,
+  .cardScanline,
+  .cardSheen,
+  .logoIcon,
+  .optionIcon,
+  .topBadge,
+  .featureChip {
+    animation: none;
+  }
+
+  .optionCard,
+  .optionArrow {
+    transition: none;
+    animation: none;
+  }
+}
+
 @media (max-width: 640px) {
+  .wrapper {
+    padding: 20px 14px;
+  }
+
+  .glowOrbA {
+    left: -18vw;
+    top: 8vh;
+  }
+
+  .glowOrbB {
+    right: -22vw;
+    bottom: -10vh;
+  }
+
+  .floatingRingOne,
+  .floatingRingTwo,
+  .lightSweep,
+  .ambientGrid {
+    display: none;
+  }
+
   .card {
-    padding: 26px 18px;
+    border-radius: 28px;
+    padding: 28px 18px 24px;
   }
 
   .title {
     font-size: 24px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+
+  .featureStrip {
+    gap: 6px;
+  }
+
+  .featureChip {
+    font-size: 10px;
+  }
+
+  .optionCard {
+    padding: 14px;
   }
 }

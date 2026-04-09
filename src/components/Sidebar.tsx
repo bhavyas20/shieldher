@@ -19,6 +19,7 @@ import {
 import { useState, useEffect, useMemo, type ComponentType } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "./ThemeProvider";
+import ReminderNotifier from "./ReminderNotifier";
 import styles from "./Sidebar.module.css";
 
 type NavItem = {
@@ -95,7 +96,7 @@ export default function Sidebar() {
       {
         href: "/dashboard/communication",
         icon: MessageSquare,
-        label: "Communication",
+        label: "Chat",
         badge: unreadCount > 0 ? unreadCount : undefined,
       },
       { href: "/dashboard/settings", icon: Settings, label: "Settings" },
@@ -112,14 +113,15 @@ export default function Sidebar() {
 
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
+      <ReminderNotifier />
       <div className={styles.top}>
         <Link href="/" className={styles.logo}>
           <div className={styles.logoIcon}>
             <Image 
-              src="/logo.png.jpeg"
+              src="/shieldher-logo.jpeg"
               alt="ShieldHer Logo"
-              width={38}
-              height={38}
+              width={44}
+              height={44}
               className={styles.customLogoImage}
             />
           </div>

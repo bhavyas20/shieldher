@@ -48,13 +48,13 @@ export async function POST(request: NextRequest) {
       const imageParts = await Promise.all(fileUrls.map(async (fileUrl: string) => {
         const imageResp = await fetch(fileUrl);
         if (!imageResp.ok) {
-           throw new Error('Failed to fetch file from storage');
+          throw new Error('Failed to fetch file from storage');
         }
         const arrayBuffer = await imageResp.arrayBuffer();
         const base64Data = Buffer.from(arrayBuffer).toString('base64');
-        
+
         let mimeType = imageResp.headers.get('content-type') || '';
-        
+
         // Fallback MIME type detection based on file extension
         if (!mimeType || mimeType.startsWith('application/')) {
           try {
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       // 4. Generate content
       const aiResponse = await model.generateContent([prompt, ...imageParts]);
       const text = aiResponse.response.text();
-      
+
       // 5. Parse the JSON safely, handling potential markdown wrappers
       const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
       result = JSON.parse(cleanText);
@@ -170,4 +170,21 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+        ?'flagged'
+        : 'completed';
+
+await supabase
+  .from('uploads')
+  .update({ status: finalStatus })
+  .eq('id', uploadId);
+
+return NextResponse.json({ success: true, analysis: analysisResult });
+  } catch (error: unknown) {
+  console.error('API Route Error:', error);
+  return NextResponse.json(
+    { error: 'Failed to process uploads' },
+    { status: 500 }
+  );
+}
 }

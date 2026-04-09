@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useTheme } from '@/components/ThemeProvider';
+import ReminderNotifier from '@/components/ReminderNotifier';
 import layoutStyles from '@/app/dashboard/layout.module.css';
 import sidebarStyles from '@/components/Sidebar.module.css';
 import styles from './LawyerShell.module.css';
@@ -75,7 +76,7 @@ export default function LawyerShell({ title, subtitle, children }: LawyerShellPr
       { href: '/lawyer/legal-drafts', label: 'Legal Drafts', Icon: FolderKanban },
       {
         href: '/lawyer/communication',
-        label: 'Communication',
+        label: 'Chat',
         Icon: MessageSquare,
         badge: unreadCount > 0 ? unreadCount : undefined,
       },
@@ -187,14 +188,15 @@ export default function LawyerShell({ title, subtitle, children }: LawyerShellPr
       </div>
 
       <aside className={`${sidebarStyles.sidebar} ${collapsed ? sidebarStyles.collapsed : ''}`}>
+        <ReminderNotifier />
         <div className={sidebarStyles.top}>
           <Link href="/lawyer/dashboard" className={sidebarStyles.logo}>
             <div className={sidebarStyles.logoIcon}>
               <Image
-                src="/logo.png.jpeg"
+                src="/shieldher-logo.jpeg"
                 alt="ShieldHer Logo"
-                width={38}
-                height={38}
+                width={44}
+                height={44}
                 className={sidebarStyles.customLogoImage}
               />
             </div>
