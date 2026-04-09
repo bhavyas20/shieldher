@@ -16,8 +16,10 @@ import {
   Lock,
   Clock,
   FileAudio,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import ConfirmModal from "@/components/ConfirmModal";
 import styles from "./page.module.css";
 
 interface UploadWithAnalysis extends Upload {
@@ -35,11 +37,13 @@ function getPrimaryAsset(fileUrl: string) {
 }
 
 function isImageAsset(url: string) {
+  if (url.startsWith('data:image/')) return true;
   return IMAGE_EXT_REGEX.test(url);
 }
 
 const AUDIO_EXT_REGEX = /\.(mp3|wav|m4a|aac|ogg|enc)(\?.*)?$/i;
 function isAudioAsset(url: string, originalType?: string) {
+  if (url.startsWith('data:audio/')) return true;
   if (originalType?.startsWith('audio/')) return true;
   return AUDIO_EXT_REGEX.test(url);
 }
@@ -54,6 +58,10 @@ export default function HistoryPage() {
   const [uploads, setUploads] = useState<UploadWithAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "flagged" | "safe">("all");
+  
+  // Deletion state
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Lock screen state
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -170,6 +178,28 @@ export default function HistoryPage() {
     } finally {
       setUnlocking(false);
       setPasswordPrompt("");
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/delete-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uploadId: deleteId }),
+      });
+
+      if (!res.ok) throw new Error("Failed to delete forensic data");
+
+      setUploads((prev) => prev.filter((u) => u.id !== deleteId));
+      setDeleteId(null);
+    } catch (err) {
+      console.error("Deletion failed:", err);
+      alert("Failed to delete forensic data. Please try again.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -309,15 +339,23 @@ export default function HistoryPage() {
                 <div className={styles.contentPane}>
                   <div className={styles.cardTitleWrap}>
                     <h3 className={styles.fileName}>{upload.file_name}</h3>
-                    <span className={styles.uploadDate}>
-                      UPLOADED: {new Date(upload.created_at).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
+                    <div className={styles.cardHeaderActions}>
+                      <span className={styles.uploadDate}>
+                        {new Date(upload.created_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <button 
+                        className={styles.deleteBtn}
+                        onClick={() => setDeleteId(upload.id)}
+                        disabled={isDeleting}
+                        title="Permanently Delete Analysis"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
 
                   {!isUnlocked ? (
@@ -391,6 +429,17 @@ export default function HistoryPage() {
           </Link>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        title="Delete Forensic Evidence?"
+        message="This action is permanent. All encrypted files and AI analysis reports associated with this upload will be wiped from the system."
+        confirmText="Permanently Delete"
+        type="danger"
+      />
     </div>
   );
 }

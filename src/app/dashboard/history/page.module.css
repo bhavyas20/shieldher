@@ -303,6 +303,41 @@
   text-transform: uppercase;
 }
 
+.cardHeaderActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.deleteBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(175, 75, 69, 0.2);
+  background: rgba(175, 75, 69, 0.05);
+  color: var(--history-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.deleteBtn:hover {
+  background: var(--history-red);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 8px 16px rgba(175, 75, 69, 0.3);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .analysisStack {
   display: flex;
   flex-direction: column;
