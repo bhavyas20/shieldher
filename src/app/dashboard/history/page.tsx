@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { type Upload, type AnalysisResult } from "@/lib/types";
-import { deriveKey, storeKey, retrieveKey, uint8ArrayToBase64 } from "@/lib/crypto";
+import { deriveKey, storeKey, retrieveKey, uint8ArrayToBase64, generateSalt } from "@/lib/crypto";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import {
   FileSearch,
@@ -164,10 +164,20 @@ export default function HistoryPage() {
         .eq("id", user.id)
         .single();
 
-      if (!profile?.encryption_salt) throw new Error("Encryption profile not found");
+      let salt = profile?.encryption_salt;
 
-      const key = await deriveKey(passwordPrompt, profile.encryption_salt);
-      await storeKey(key, profile.encryption_salt); // Cache in memory
+      if (!salt) {
+        salt = generateSalt();
+        const { error: updateErr } = await supabase
+          .from("profiles")
+          .update({ encryption_salt: salt })
+          .eq("id", user.id);
+        
+        if (updateErr) throw new Error("Failed to initialize encryption profile");
+      }
+
+      const key = await deriveKey(passwordPrompt, salt);
+      await storeKey(key, salt); // Cache in memory
       
       // 3. Trigger proxy decryption
       setIsUnlocked(true);
